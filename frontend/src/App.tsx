@@ -1,0 +1,385 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Sidebar } from './components/Sidebar';
+import type { NavTab } from './components/Sidebar';
+import { Header } from './components/Header';
+import { TransactionModal } from './components/TransactionModal';
+import { DashboardView } from './views/DashboardView';
+import { TransactionsView } from './views/TransactionsView';
+import { BudgetsView } from './views/BudgetsView';
+import { AnalyticsView } from './views/AnalyticsView';
+import { RecurringView } from './views/RecurringView';
+import { ExportView } from './views/ExportView';
+import { AuthView } from './views/AuthView';
+import { api, authStorage } from './api/client';
+import type {
+  User,
+  Category,
+  Transaction,
+  AnalyticsSummary,
+  MonthlyTrendItem,
+  CategorySpendItem,
+  DailyExpenseItem,
+  InsightItem,
+  BudgetProgress,
+  RecurringExpense,
+  AnomalyItem,
+  ForecastResponse,
+} from './types';
+
+export function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [period, setPeriod] = useState<string>('month');
+  const [currentCurrency, setCurrentCurrency] = useState<string>(
+    () => localStorage.getItem('smart_expense_currency') || 'USD'
+  );
+
+  const handleCurrencyChange = (newCurr: string) => {
+    setCurrentCurrency(newCurr);
+    localStorage.setItem('smart_expense_currency', newCurr);
+    api.updateProfile({ currency: newCurr }).catch(() => {});
+  };
+
+  // Shared application state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [totalTransactions, setTotalTransactions] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [search, setSearch] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [onlyAnomalies, setOnlyAnomalies] = useState<boolean>(false);
+
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [trends, setTrends] = useState<MonthlyTrendItem[]>([]);
+  const [categorySpends, setCategorySpends] = useState<CategorySpendItem[]>([]);
+  const [dailyExpenses, setDailyExpenses] = useState<DailyExpenseItem[]>([]);
+  const [insights, setInsights] = useState<InsightItem[]>([]);
+  const [budgetProgress, setBudgetProgress] = useState<BudgetProgress[]>([]);
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([]);
+  const [anomalies, setAnomalies] = useState<AnomalyItem[]>([]);
+  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
+
+  // Modal states
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [isResetting, setIsResetting] = useState<boolean>(false);
+
+  // Check auth on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = authStorage.getToken();
+      if (!token) {
+        setIsAuthLoading(false);
+        return;
+      }
+      try {
+        const profile = await api.getProfile();
+        setUser(profile);
+        if (profile.currency) {
+          setCurrentCurrency(profile.currency);
+          localStorage.setItem('smart_expense_currency', profile.currency);
+        }
+      } catch {
+        authStorage.removeToken();
+        setUser(null);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    const handleAuthChange = () => {
+      if (!authStorage.getToken()) setUser(null);
+    };
+    window.addEventListener('auth_state_changed', handleAuthChange);
+    return () => window.removeEventListener('auth_state_changed', handleAuthChange);
+  }, []);
+
+  // Auto-shutdown heartbeat loop
+  useEffect(() => {
+    api.sendHeartbeat().catch(() => {});
+
+    const interval = setInterval(() => {
+      api.sendHeartbeat().catch(() => {});
+    }, 4000);
+
+    const handleUnload = () => {
+      try {
+        const beaconUrl =
+          window.location.port === '5173'
+            ? 'http://localhost:8000/api/system/leave'
+            : '/api/system/leave';
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(beaconUrl);
+        }
+      } catch {}
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
+
+  // Fetch Core Data when user or period changes
+  const loadCoreData = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [
+        catsData,
+        summaryData,
+        trendsData,
+        catSpendsData,
+        dailyExpensesData,
+        insightsData,
+        budgetsData,
+        recurringData,
+        anomaliesData,
+        forecastData,
+      ] = await Promise.all([
+        api.getCategories(),
+        api.getSummary(period),
+        api.getTrajectory(period),
+        api.getCategoryBreakdown(period),
+        api.getDailyExpenses(period),
+        api.getInsights(currentCurrency),
+        api.getBudgetsProgress(),
+        api.getRecurring(),
+        api.getAnomalies(),
+        api.getForecast(),
+      ]);
+
+      setCategories(catsData);
+      setSummary(summaryData);
+      setTrends(trendsData);
+      setCategorySpends(catSpendsData);
+      setDailyExpenses(dailyExpensesData);
+      setInsights(insightsData.insights);
+      setBudgetProgress(budgetsData);
+      setRecurringExpenses(recurringData);
+      setAnomalies(anomaliesData);
+      setForecast(forecastData);
+    } catch (err) {
+      console.error('Error fetching core dashboard data:', err);
+    }
+  }, [user, period, currentCurrency]);
+
+  // Fetch Transactions (paginated & filtered)
+  const loadTransactions = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await api.getTransactions({
+        page,
+        page_size: 12,
+        search,
+        category_id: selectedCategory,
+        type: selectedType || undefined,
+        is_anomaly: onlyAnomalies ? true : undefined,
+        sort_by: 'date',
+        sort_dir: 'desc',
+      });
+      setTransactions(res.items);
+      setTotalTransactions(res.total);
+      setTotalPages(res.total_pages);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+    }
+  }, [user, page, search, selectedCategory, selectedType, onlyAnomalies]);
+
+  useEffect(() => {
+    if (user) {
+      loadCoreData();
+    }
+  }, [user, loadCoreData]);
+
+  useEffect(() => {
+    if (user) {
+      loadTransactions();
+    }
+  }, [user, loadTransactions]);
+
+  const handleRefreshAll = () => {
+    loadCoreData();
+    loadTransactions();
+  };
+
+  const handleResetDemoData = async () => {
+    setIsResetting(true);
+    try {
+      await api.resetDemoData();
+      handleRefreshAll();
+    } catch (err: any) {
+      alert(err.message || 'Failed to reset demo data.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleOpenAdd = () => {
+    setEditingTransaction(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditTransaction = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteTransaction = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
+    try {
+      await api.deleteTransaction(id);
+      handleRefreshAll();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete transaction.');
+    }
+  };
+
+  const handleViewAnomalies = () => {
+    setActiveTab('transactions');
+    setOnlyAnomalies(true);
+    setPage(1);
+  };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="flex items-center space-x-2 text-zinc-500 text-xs font-mono">
+          <div className="w-3 h-3 border-2 border-zinc-400 border-t-zinc-900 rounded-full animate-spin"></div>
+          <span>Initializing Smart Expense OS...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthView onAuthSuccess={(newUser) => setUser(newUser)} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex">
+      {/* Persistent Left Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        onLogout={() => api.logout()}
+        onResetData={handleResetDemoData}
+        isResetting={isResetting}
+        anomalyCount={anomalies.length}
+      />
+
+      {/* Main Workspace Area (offset by 256px sidebar) */}
+      <div className="flex-1 ml-64 flex flex-col min-w-0">
+        <Header
+          activeTab={activeTab}
+          period={period}
+          setPeriod={setPeriod}
+          currency={currentCurrency}
+          onCurrencyChange={handleCurrencyChange}
+          onOpenAddModal={handleOpenAdd}
+          anomalyCount={anomalies.length}
+          onViewAnomalies={handleViewAnomalies}
+        />
+
+        <main className="flex-1 p-8 max-w-7xl w-full mx-auto">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              summary={summary}
+              trends={trends}
+              categorySpends={categorySpends}
+              dailyExpenses={dailyExpenses}
+              insights={insights}
+              budgetProgress={budgetProgress}
+              recentTransactions={transactions}
+              currency={currentCurrency}
+              period={period}
+              onPeriodChange={(newPeriod) => setPeriod(newPeriod)}
+              onNavigateTransactions={() => setActiveTab('transactions')}
+              onNavigateBudgets={() => setActiveTab('budgets')}
+            />
+          )}
+
+          {activeTab === 'transactions' && (
+            <TransactionsView
+              transactions={transactions}
+              totalTransactions={totalTransactions}
+              page={page}
+              totalPages={totalPages}
+              setPage={setPage}
+              categories={categories}
+              search={search}
+              setSearch={setSearch}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
+              onlyAnomalies={onlyAnomalies}
+              setOnlyAnomalies={setOnlyAnomalies}
+              onEditTransaction={handleEditTransaction}
+              onDeleteTransaction={handleDeleteTransaction}
+              onOpenAddModal={handleOpenAdd}
+              currency={currentCurrency}
+            />
+          )}
+
+          {activeTab === 'budgets' && (
+            <BudgetsView
+              budgetProgress={budgetProgress}
+              categories={categories}
+              currency={currentCurrency}
+              onRefresh={handleRefreshAll}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsView
+              summary={summary}
+              trends={trends}
+              categorySpends={categorySpends}
+              forecast={forecast}
+              currency={currentCurrency}
+            />
+          )}
+
+          {activeTab === 'recurring' && (
+            <RecurringView
+              recurringExpenses={recurringExpenses}
+              categories={categories}
+              currency={currentCurrency}
+              onRefresh={handleRefreshAll}
+            />
+          )}
+
+          {activeTab === 'export' && (
+            <ExportView
+              user={user}
+              summary={summary}
+              categorySpends={categorySpends}
+              trends={trends}
+              currency={currentCurrency}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Transaction Add/Edit Modal */}
+      <TransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleRefreshAll}
+        categories={categories}
+        initialTransaction={editingTransaction}
+        defaultCurrency={currentCurrency}
+        onCurrencyChange={handleCurrencyChange}
+      />
+    </div>
+  );
+}
+
+export default App;

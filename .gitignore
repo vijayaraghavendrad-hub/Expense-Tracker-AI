@@ -1,0 +1,51 @@
+# ===========================
+# Smart Expense Tracker .gitignore
+# ===========================
+
+# --- Environment / Secrets (NEVER commit these) ---
+.env
+.env.*
+!.env.example
+*.secret
+
+# --- Python / Backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+*.db
+*.sqlite
+*.sqlite3
+expense_tracker.db
+
+# --- Node / Frontend ---
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Testing / Coverage ---
+htmlcov/
+.coverage
+.pytest_cache/
