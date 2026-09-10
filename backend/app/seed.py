@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, timedelta
 import random
 from sqlalchemy.orm import Session
@@ -144,9 +145,10 @@ def seed_demo_data(user_id: int, db: Session):
                 )
 
         # Expenses for this month
-        max_day = 28
+        _, actual_max_day = calendar.monthrange(y, m)
+        max_day = actual_max_day
         if month_offset == 0:
-            max_day = min(today.day, 28)
+            max_day = min(today.day, actual_max_day)
 
         # Add recurring rent
         rent_date = date(y, m, 1)
@@ -190,7 +192,7 @@ def seed_demo_data(user_id: int, db: Session):
                 )
             )
 
-    # 4. Realistic higher-value purchases without anomaly flags
+    # 4. Realistic higher-value purchases flagged as anomalies
     anom_date_1 = today - timedelta(days=4)
     db.add(
         Transaction(
@@ -201,8 +203,8 @@ def seed_demo_data(user_id: int, db: Session):
             payment_method="Credit Card",
             description="L'Artisan Omakase Tasting Menu & Wine (Anniversary)",
             transaction_date=anom_date_1,
-            is_anomaly=False,
-            anomaly_reason=None,
+            is_anomaly=True,
+            anomaly_reason="$385.00 is 4.9x higher than your typical Food & Dining expense (median: $78.00)",
         )
     )
 
@@ -216,8 +218,8 @@ def seed_demo_data(user_id: int, db: Session):
             payment_method="Credit Card",
             description="Apple Store Ultra HD Studio Monitor",
             transaction_date=anom_date_2,
-            is_anomaly=False,
-            anomaly_reason=None,
+            is_anomaly=True,
+            anomaly_reason="$1199.00 significantly exceeds your normal Shopping spending limit (avg: $54.16)",
         )
     )
 

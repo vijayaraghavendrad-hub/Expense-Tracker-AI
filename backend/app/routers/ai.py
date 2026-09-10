@@ -120,9 +120,9 @@ def get_anomalies(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
-    Anomaly suggestions removed in favor of accurate AI spending advisory.
+    Returns flagged anomalous transactions for the user.
     """
-    return []
+    return scan_user_anomalies(current_user.id, db)
 
 
 @router.get("/forecast", response_model=ForecastResponse)

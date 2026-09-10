@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Download, Printer, FileSpreadsheet, FileText, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
 import type { AnalyticsSummary, CategorySpendItem, MonthlyTrendItem, User } from '../types';
@@ -22,18 +22,23 @@ export const ExportView: React.FC<ExportViewProps> = ({
   const currencySymbol = getCurrencySymbol(currency);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   const handleDownloadCsv = async () => {
     setIsDownloading(true);
     try {
       await api.downloadTransactionsCsv({ currency });
       setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 4000);
+      successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
     } catch {
       const url = api.getExportCsvUrl({ currency });
       window.open(url, '_blank');
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 4000);
     } finally {
       setIsDownloading(false);
     }

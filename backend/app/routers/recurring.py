@@ -22,7 +22,10 @@ def advance_next_date(current_date: date, frequency: str) -> date:
     elif freq == "weekly":
         return current_date + timedelta(weeks=1)
     elif freq == "yearly":
-        return current_date.replace(year=current_date.year + 1)
+        try:
+            return current_date.replace(year=current_date.year + 1)
+        except ValueError:
+            return current_date.replace(year=current_date.year + 1, day=28)
     else:  # monthly
         month = current_date.month + 1
         year = current_date.year

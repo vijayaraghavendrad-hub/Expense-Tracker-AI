@@ -35,14 +35,20 @@ def get_budgets_progress(
 
     results = []
     for b in budgets:
+        # Use date range comparison for SQLite + PostgreSQL compatibility
+        import calendar
+        _, month_last_day = calendar.monthrange(target_year, target_month)
+        month_start = date(target_year, target_month, 1)
+        month_end = date(target_year, target_month, month_last_day)
+
         spent = (
             db.query(func.sum(Transaction.amount))
             .filter(
                 Transaction.user_id == current_user.id,
                 Transaction.category_id == b.category_id,
                 Transaction.type == "expense",
-                func.extract("year", Transaction.transaction_date) == target_year,
-                func.extract("month", Transaction.transaction_date) == target_month,
+                Transaction.transaction_date >= month_start,
+                Transaction.transaction_date <= month_end,
             )
             .scalar()
             or 0.0

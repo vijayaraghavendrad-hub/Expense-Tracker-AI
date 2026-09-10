@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   ArrowRight,
   Calendar,
-  Layers,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -73,7 +72,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Active days with spend
   const activeSpendDays = dailyExpenses.filter((d) => d.total_expense > 0);
-  const maxDaySpend = Math.max(...dailyExpenses.map((d) => d.total_expense), 10);
   const avgDailySpend = summary?.avg_daily_spend || 0;
 
   const displayedCategories = showAllCategories ? categorySpends : categorySpends.slice(0, 6);
@@ -461,8 +459,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     outerRadius={70}
                     paddingAngle={3}
                   >
-                    {categorySpends.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || '#71717a'} />
+                    {categorySpends.map((entry) => (
+                      <Cell key={`cell-${entry.category_name}`} fill={entry.color || '#71717a'} />
                     ))}
                   </Pie>
                   <Tooltip

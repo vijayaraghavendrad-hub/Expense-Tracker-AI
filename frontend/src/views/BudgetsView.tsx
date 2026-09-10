@@ -168,7 +168,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                 {item.is_exceeded ? (
                   <span className="flex items-center space-x-1 text-[11px] font-semibold text-rose-700">
                     <AlertTriangle className="w-3 h-3" />
-                    <span>Over by {currencySymbol}${(item.spent_amount - item.budget_amount).toFixed(2)}</span>
+                    <span>Over by {currencySymbol}{(item.spent_amount - item.budget_amount).toFixed(2)}</span>
                   </span>
                 ) : (
                   <span className="text-zinc-500 text-[11px]">

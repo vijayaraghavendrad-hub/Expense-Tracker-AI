@@ -16,6 +16,13 @@ from ..auth import get_current_user
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
+def _month_range(year: int, month: int):
+    """Return (start_date, end_date) for a given month — compatible with SQLite and PostgreSQL."""
+    import calendar
+    _, last_day = calendar.monthrange(year, month)
+    return date(year, month, 1), date(year, month, last_day)
+
+
 def get_period_dates(period: str, start_date: Optional[date] = None, end_date: Optional[date] = None):
     today = date.today()
     if start_date and end_date:
@@ -113,18 +120,21 @@ def get_analytics_summary(
     highest_day_str = highest_day[0].strftime("%b %d, %Y") if highest_day else None
     highest_day_amt = float(highest_day[1]) if highest_day else 0.0
 
-    # Month over month expense growth using database-agnostic year/month extract
+    # Month over month expense growth using date range comparison (SQLite + PostgreSQL compatible)
     today = date.today()
     prev_month = today.month - 1 if today.month > 1 else 12
     prev_year = today.year if today.month > 1 else today.year - 1
+
+    curr_start, curr_end = _month_range(today.year, today.month)
+    prev_start, prev_end = _month_range(prev_year, prev_month)
 
     curr_month_exp = (
         db.query(func.sum(Transaction.amount))
         .filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "expense",
-            func.extract("year", Transaction.transaction_date) == today.year,
-            func.extract("month", Transaction.transaction_date) == today.month,
+            Transaction.transaction_date >= curr_start,
+            Transaction.transaction_date <= curr_end,
         )
         .scalar()
         or 0.0
@@ -135,8 +145,8 @@ def get_analytics_summary(
         .filter(
             Transaction.user_id == current_user.id,
             Transaction.type == "expense",
-            func.extract("year", Transaction.transaction_date) == prev_year,
-            func.extract("month", Transaction.transaction_date) == prev_month,
+            Transaction.transaction_date >= prev_start,
+            Transaction.transaction_date <= prev_end,
         )
         .scalar()
         or 0.0
@@ -167,7 +177,7 @@ def get_monthly_trends(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Fetch distinct months sorted ascending using extract for universal PostgreSQL & SQLite support
+    # Fetch distinct months sorted ascending — use extract for GROUP BY (works on both SQLite and PostgreSQL)
     inc_query = (
         db.query(
             func.extract("year", Transaction.transaction_date).label("y"),

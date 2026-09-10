@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from .database import engine, Base, get_db
 from .models import User
@@ -31,10 +31,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS configuration for local React development
+# CORS configuration — restrict in production
+ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:8000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local dev
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,7 +58,7 @@ auto_shutdown_enabled = os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1"
 def do_shutdown():
     time.sleep(0.5)
     print("Initiating clean shutdown of Smart Expense Tracker...")
-    os._exit(0)
+    sys.exit(0)
 
 
 @app.get("/api/health")
@@ -78,7 +79,10 @@ def client_leave():
 
 
 @app.post("/api/system/shutdown")
-def trigger_shutdown(background_tasks: BackgroundTasks):
+def trigger_shutdown(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+):
     background_tasks.add_task(do_shutdown)
     return {"message": "Server shutting down..."}
 
@@ -102,7 +106,7 @@ def auto_shutdown_watchdog():
             idle_seconds = time.time() - last_heartbeat
             if idle_seconds > 12:
                 print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-                os._exit(0)
+                sys.exit(0)
 
 
 if auto_shutdown_enabled:
@@ -120,8 +124,8 @@ if dist_dir.exists() and (dist_dir / "index.html").exists():
 
     @app.get("/{full_path:path}")
     def serve_frontend(full_path: str):
-        if full_path.startswith("api"):
-            return {"error": "Not Found"}
+        if full_path.startswith("api/"):
+            return JSONResponse(status_code=404, content={"error": "Not Found"})
         target_file = dist_dir / full_path
         if full_path and target_file.exists() and not target_file.is_dir():
             return FileResponse(str(target_file))

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import type { NavTab } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -62,6 +62,9 @@ export function App() {
   const [anomalies, setAnomalies] = useState<AnomalyItem[]>([]);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
 
+  // Error state for data fetching
+  const [dataError, setDataError] = useState<string | null>(null);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -99,8 +102,10 @@ export function App() {
     return () => window.removeEventListener('auth_state_changed', handleAuthChange);
   }, []);
 
-  // Auto-shutdown heartbeat loop
+  // Auto-shutdown heartbeat loop — only when authenticated
   useEffect(() => {
+    if (!user) return;
+
     api.sendHeartbeat().catch(() => {});
 
     const interval = setInterval(() => {
@@ -124,10 +129,10 @@ export function App() {
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleUnload);
     };
-  }, []);
+  }, [user]);
 
-  // Fetch Core Data when user or period changes
-  const loadCoreData = useCallback(async () => {
+  // Fetch Core Data when user or period changes — with AbortController for race condition prevention
+  const loadCoreData = useCallback(async (signal?: AbortSignal) => {
     if (!user) return;
     try {
       const [
@@ -154,6 +159,8 @@ export function App() {
         api.getForecast(),
       ]);
 
+      if (signal?.aborted) return;
+
       setCategories(catsData);
       setSummary(summaryData);
       setTrends(trendsData);
@@ -164,13 +171,17 @@ export function App() {
       setRecurringExpenses(recurringData);
       setAnomalies(anomaliesData);
       setForecast(forecastData);
+      setDataError(null);
     } catch (err) {
-      console.error('Error fetching core dashboard data:', err);
+      if (!signal?.aborted) {
+        console.error('Error fetching core dashboard data:', err);
+        setDataError('Failed to load dashboard data. Please try again.');
+      }
     }
   }, [user, period, currentCurrency]);
 
-  // Fetch Transactions (paginated & filtered)
-  const loadTransactions = useCallback(async () => {
+  // Fetch Transactions (paginated & filtered) — with AbortController
+  const loadTransactions = useCallback(async (signal?: AbortSignal) => {
     if (!user) return;
     try {
       const res = await api.getTransactions({
@@ -183,30 +194,39 @@ export function App() {
         sort_by: 'date',
         sort_dir: 'desc',
       });
+
+      if (signal?.aborted) return;
+
       setTransactions(res.items);
       setTotalTransactions(res.total);
       setTotalPages(res.total_pages);
     } catch (err) {
-      console.error('Error fetching transactions:', err);
+      if (!signal?.aborted) {
+        console.error('Error fetching transactions:', err);
+      }
     }
   }, [user, page, search, selectedCategory, selectedType, onlyAnomalies]);
 
   useEffect(() => {
     if (user) {
-      loadCoreData();
+      const controller = new AbortController();
+      loadCoreData(controller.signal);
+      return () => controller.abort();
     }
   }, [user, loadCoreData]);
 
   useEffect(() => {
     if (user) {
-      loadTransactions();
+      const controller = new AbortController();
+      loadTransactions(controller.signal);
+      return () => controller.abort();
     }
   }, [user, loadTransactions]);
 
-  const handleRefreshAll = () => {
+  const handleRefreshAll = useCallback(() => {
     loadCoreData();
     loadTransactions();
-  };
+  }, [loadCoreData, loadTransactions]);
 
   const handleResetDemoData = async () => {
     setIsResetting(true);
@@ -288,6 +308,14 @@ export function App() {
         />
 
         <main className="flex-1 p-8 max-w-7xl w-full mx-auto">
+          {dataError && (
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center justify-between">
+              <span>{dataError}</span>
+              <button onClick={() => { setDataError(null); handleRefreshAll(); }} className="text-rose-800 font-semibold underline">
+                Retry
+              </button>
+            </div>
+          )}
           {activeTab === 'dashboard' && (
             <DashboardView
               summary={summary}

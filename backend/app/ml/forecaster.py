@@ -13,7 +13,7 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
     to project a multi-month efficient spending trajectory with expanding confidence bounds.
     Universal PostgreSQL and SQLite compatibility.
     """
-    # Fetch monthly expense totals using cross-platform extract
+    # Fetch monthly expense totals — use extract for GROUP BY (works on both SQLite and PostgreSQL)
     results = (
         db.query(
             func.extract("year", Transaction.transaction_date).label("y"),

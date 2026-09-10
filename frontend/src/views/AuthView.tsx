@@ -124,6 +124,9 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthSuccess }) => {
             onClick={() => {
               setIsRegister(!isRegister);
               setError(null);
+              setName('');
+              setEmail('');
+              setPassword('');
             }}
             className="text-xs text-zinc-500 hover:text-zinc-900 font-medium transition-colors"
           >

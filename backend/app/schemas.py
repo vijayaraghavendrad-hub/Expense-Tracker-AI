@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -56,7 +56,7 @@ class CategoryCreate(CategoryBase):
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
-    type: Optional[str] = None
+    type: Optional[str] = Field(None, pattern="^(expense|income)$")
     icon: Optional[str] = None
     color: Optional[str] = None
 
@@ -86,7 +86,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionUpdate(BaseModel):
     amount: Optional[float] = Field(None, gt=0)
-    type: Optional[str] = None
+    type: Optional[str] = Field(None, pattern="^(expense|income)$")
     category_id: Optional[int] = None
     payment_method: Optional[str] = None
     currency: Optional[str] = None
@@ -242,7 +242,7 @@ class InsightItem(BaseModel):
 
 class SpendingInsightsResponse(BaseModel):
     insights: List[InsightItem]
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # ----------------- Analytics -----------------

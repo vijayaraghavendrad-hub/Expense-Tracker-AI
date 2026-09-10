@@ -107,9 +107,10 @@ def delete_category(
         raise HTTPException(status_code=404, detail="Category not found.")
 
     # Nullify transactions pointing to this category before deleting
-    db.query(Transaction).filter(Transaction.category_id == category_id).update(
-        {"category_id": None}
-    )
+    db.query(Transaction).filter(
+        Transaction.category_id == category_id,
+        Transaction.user_id == current_user.id,
+    ).update({"category_id": None})
     db.delete(cat)
     db.commit()
     return {"message": "Category deleted successfully"}

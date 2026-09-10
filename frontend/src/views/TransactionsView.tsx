@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -57,6 +57,15 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 }) => {
   const currencySymbol = getCurrencySymbol(currency);
   const [isExporting, setIsExporting] = React.useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedSetSearch = useCallback((value: string) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      setSearch(value);
+      setPage(1);
+    }, 400);
+  }, [setSearch, setPage]);
 
   const handleExportCsv = async () => {
     setIsExporting(true);
@@ -87,10 +96,9 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            value={search}
+            defaultValue={search}
             onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
+              debouncedSetSearch(e.target.value);
             }}
             placeholder="Search by description..."
             className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:bg-white"

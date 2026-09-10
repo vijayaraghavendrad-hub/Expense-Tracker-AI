@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Check, ArrowRight, Plus } from 'lucide-react';
 import { api } from '../api/client';
 import type { Category, Transaction } from '../types';
@@ -81,17 +81,26 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }, [initialTransaction, isOpen, defaultCurrency]);
 
   // Debounced AI category prediction as user types description or amount (FR8.1)
+  const categoryIdRef = useRef(categoryId);
+  useEffect(() => {
+    categoryIdRef.current = categoryId;
+  }, [categoryId]);
+
   useEffect(() => {
     if (!description || description.trim().length < 2 || initialTransaction) {
       setAiSuggestion(null);
       return;
     }
 
+    const controller = new AbortController();
+
     const timer = setTimeout(async () => {
       try {
         setIsPredicting(true);
         const parsedAmount = parseFloat(amount) || undefined;
         const res = await api.categorize(description, parsedAmount);
+
+        if (controller.signal.aborted) return;
 
         // Find matching category ID in available categories
         const matched = localCategories.find(
@@ -107,18 +116,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         });
 
         // Auto-select if category hasn't been set yet and confidence is high (> 65%)
-        if (!categoryId && matched && res.confidence >= 0.65) {
+        if (!categoryIdRef.current && matched && res.confidence >= 0.65) {
           setCategoryId(matched.id);
           setAcceptedAiCat(res.predicted_category);
         }
       } catch (err) {
-        console.error('AI categorization error', err);
+        if (!controller.signal.aborted) {
+          console.error('AI categorization error', err);
+        }
       } finally {
         setIsPredicting(false);
       }
     }, 380);
 
-    return () => clearTimeout(timer);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [description, amount, localCategories, initialTransaction]);
 
 

@@ -38,13 +38,18 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
   const [nextDate, setNextDate] = useState(new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const expenseCategories = categories.filter((c) => c.type === 'expense');
 
   const handleCreateRecurring = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     const parsed = parseFloat(amount);
-    if (isNaN(parsed) || parsed <= 0 || !description.trim()) return;
+    if (isNaN(parsed) || parsed <= 0 || !description.trim()) {
+      setFormError('Please fill in all required fields with valid values.');
+      return;
+    }
 
     try {
       await api.createRecurring({
@@ -138,7 +143,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
           </button>
 
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => { setIsModalOpen(true); setFormError(null); }}
             className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -266,6 +271,11 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateRecurring} className="mt-4 space-y-3">
+              {formError && (
+                <div className="p-2 bg-rose-50 text-rose-700 text-xs rounded-lg border border-rose-200">
+                  {formError}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-zinc-700 mb-1">Description</label>
                 <input
@@ -338,7 +348,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
               <div className="pt-3 border-t border-zinc-100 flex items-center justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { setIsModalOpen(false); setFormError(null); }}
                   className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900"
                 >
                   Cancel

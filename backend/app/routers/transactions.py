@@ -158,6 +158,17 @@ def update_transaction(
     if payload.type is not None:
         tx.type = payload.type
     if payload.category_id is not None:
+        from sqlalchemy import or_
+        cat = (
+            db.query(Category)
+            .filter(
+                Category.id == payload.category_id,
+                or_(Category.user_id == current_user.id, Category.user_id.is_(None)),
+            )
+            .first()
+        )
+        if not cat:
+            raise HTTPException(status_code=400, detail="Invalid category ID.")
         tx.category_id = payload.category_id
     if payload.payment_method is not None:
         tx.payment_method = payload.payment_method

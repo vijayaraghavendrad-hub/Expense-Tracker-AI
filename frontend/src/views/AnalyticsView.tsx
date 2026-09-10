@@ -1,10 +1,6 @@
 import React from 'react';
 import {
-  TrendingUp,
-  Calendar,
   Sparkles,
-  ArrowUpRight,
-  ArrowDownRight,
   Activity,
   Layers,
 } from 'lucide-react';
