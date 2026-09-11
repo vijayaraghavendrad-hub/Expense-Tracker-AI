@@ -32,7 +32,12 @@ app = FastAPI(
 )
 
 # CORS configuration — restrict in production
-ALLOWED_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:8000").split(",")
+cors_origins = os.getenv("CORS_ORIGINS", "")
+if cors_origins:
+    ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+else:
+    ALLOWED_ORIGINS = ["http://localhost:5173", "http://localhost:8000", "http://127.0.0.1:5173"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: smart-expense-tracker-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://your-app.vercel.app
+      - key: ENABLE_AUTO_SHUTDOWN
+        value: "0"
+      - key: PYTHON_VERSION
+        value: "3.11"
