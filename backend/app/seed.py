@@ -21,6 +21,8 @@ def seed_demo_data(user_id: int, db: Session):
     db.query(RecurringExpense).filter(RecurringExpense.user_id == user_id).delete()
     db.query(MLPrediction).filter(MLPrediction.user_id == user_id).delete()
 
+    all_objects = []
+
     # 1. Seed Budgets for current month
     budget_allocations = [
         ("Food & Dining", 650.0),
@@ -33,14 +35,13 @@ def seed_demo_data(user_id: int, db: Session):
     ]
     for name, amt in budget_allocations:
         if name in cat_map:
-            b = Budget(
+            all_objects.append(Budget(
                 user_id=user_id,
                 category_id=cat_map[name],
                 amount=amt,
                 month=today.month,
                 year=today.year,
-            )
-            db.add(b)
+            ))
 
     # 2. Seed Recurring Expenses
     recurring_items = [
@@ -52,7 +53,7 @@ def seed_demo_data(user_id: int, db: Session):
     ]
     for cat_name, amt, freq, next_d, desc in recurring_items:
         if cat_name in cat_map:
-            rec = RecurringExpense(
+            all_objects.append(RecurringExpense(
                 user_id=user_id,
                 category_id=cat_map[cat_name],
                 amount=amt,
@@ -60,12 +61,9 @@ def seed_demo_data(user_id: int, db: Session):
                 next_date=next_d,
                 description=desc,
                 is_active=True,
-            )
-            db.add(rec)
+            ))
 
     # 3. Seed 6 Months of Historical Transactions
-    # Each month gets 2 salary deposits ($3,200 each = $6,400 monthly income)
-    # Plus regular realistic expense transactions
     sample_expenses = [
         ("Food & Dining", "Whole Foods Weekly Groceries", 112.40, "Credit Card"),
         ("Food & Dining", "Trader Joe's essentials and snacks", 68.20, "Debit Card"),
@@ -90,7 +88,6 @@ def seed_demo_data(user_id: int, db: Session):
     ]
 
     for month_offset in range(5, -1, -1):
-        # Calculate target month date
         m = today.month - month_offset
         y = today.year
         while m <= 0:
@@ -101,48 +98,30 @@ def seed_demo_data(user_id: int, db: Session):
         sal_date_1 = date(y, m, 5)
         sal_date_2 = date(y, m, 20)
         if sal_date_1 <= today:
-            db.add(
-                Transaction(
-                    user_id=user_id,
-                    amount=3200.0,
-                    type="income",
-                    category_id=cat_map.get("Salary"),
-                    payment_method="Bank Transfer",
-                    description="Bi-Weekly Payroll Salary Direct Deposit",
-                    transaction_date=sal_date_1,
-                    is_anomaly=False,
-                )
-            )
+            all_objects.append(Transaction(
+                user_id=user_id, amount=3200.0, type="income",
+                category_id=cat_map.get("Salary"), payment_method="Bank Transfer",
+                description="Bi-Weekly Payroll Salary Direct Deposit",
+                transaction_date=sal_date_1, is_anomaly=False,
+            ))
         if sal_date_2 <= today:
-            db.add(
-                Transaction(
-                    user_id=user_id,
-                    amount=3200.0,
-                    type="income",
-                    category_id=cat_map.get("Salary"),
-                    payment_method="Bank Transfer",
-                    description="Bi-Weekly Payroll Salary Direct Deposit",
-                    transaction_date=sal_date_2,
-                    is_anomaly=False,
-                )
-            )
+            all_objects.append(Transaction(
+                user_id=user_id, amount=3200.0, type="income",
+                category_id=cat_map.get("Salary"), payment_method="Bank Transfer",
+                description="Bi-Weekly Payroll Salary Direct Deposit",
+                transaction_date=sal_date_2, is_anomaly=False,
+            ))
 
-        # In alternate months, add a small Freelance income
+        # In alternate months, add Freelance income
         if month_offset % 2 == 1:
             freelance_date = date(y, m, 14)
             if freelance_date <= today:
-                db.add(
-                    Transaction(
-                        user_id=user_id,
-                        amount=850.0,
-                        type="income",
-                        category_id=cat_map.get("Freelance"),
-                        payment_method="Bank Transfer",
-                        description="Freelance Frontend UI Contract Payment",
-                        transaction_date=freelance_date,
-                        is_anomaly=False,
-                    )
-                )
+                all_objects.append(Transaction(
+                    user_id=user_id, amount=850.0, type="income",
+                    category_id=cat_map.get("Freelance"), payment_method="Bank Transfer",
+                    description="Freelance Frontend UI Contract Payment",
+                    transaction_date=freelance_date, is_anomaly=False,
+                ))
 
         # Expenses for this month
         _, actual_max_day = calendar.monthrange(y, m)
@@ -153,74 +132,47 @@ def seed_demo_data(user_id: int, db: Session):
         # Add recurring rent
         rent_date = date(y, m, 1)
         if rent_date <= today:
-            db.add(
-                Transaction(
-                    user_id=user_id,
-                    amount=1450.0,
-                    type="expense",
-                    category_id=cat_map.get("Rent & Housing"),
-                    payment_method="Bank Transfer",
-                    description="Downtown 1BR Apartment Rent",
-                    transaction_date=rent_date,
-                    is_anomaly=False,
-                )
-            )
+            all_objects.append(Transaction(
+                user_id=user_id, amount=1450.0, type="expense",
+                category_id=cat_map.get("Rent & Housing"), payment_method="Bank Transfer",
+                description="Downtown 1BR Apartment Rent",
+                transaction_date=rent_date, is_anomaly=False,
+            ))
 
         # Distribute realistic transactions
         for cat_name, desc_text, base_amt, p_method in sample_expenses:
             if cat_name == "Rent & Housing":
-                continue  # already added
+                continue
             t_day = random.randint(2, max_day)
             t_date = date(y, m, t_day)
             if t_date > today:
                 continue
-
-            # slight realistic variance
             variance = random.uniform(0.9, 1.15)
             actual_amt = round(base_amt * variance, 2)
+            all_objects.append(Transaction(
+                user_id=user_id, amount=actual_amt, type="expense",
+                category_id=cat_map.get(cat_name), payment_method=p_method,
+                description=desc_text, transaction_date=t_date, is_anomaly=False,
+            ))
 
-            db.add(
-                Transaction(
-                    user_id=user_id,
-                    amount=actual_amt,
-                    type="expense",
-                    category_id=cat_map.get(cat_name),
-                    payment_method=p_method,
-                    description=desc_text,
-                    transaction_date=t_date,
-                    is_anomaly=False,
-                )
-            )
-
-    # 4. Realistic higher-value purchases flagged as anomalies
+    # 4. Anomaly transactions
     anom_date_1 = today - timedelta(days=4)
-    db.add(
-        Transaction(
-            user_id=user_id,
-            amount=385.00,
-            type="expense",
-            category_id=cat_map.get("Food & Dining"),
-            payment_method="Credit Card",
-            description="L'Artisan Omakase Tasting Menu & Wine (Anniversary)",
-            transaction_date=anom_date_1,
-            is_anomaly=True,
-            anomaly_reason="$385.00 is 4.9x higher than your typical Food & Dining expense (median: $78.00)",
-        )
-    )
+    all_objects.append(Transaction(
+        user_id=user_id, amount=385.00, type="expense",
+        category_id=cat_map.get("Food & Dining"), payment_method="Credit Card",
+        description="L'Artisan Omakase Tasting Menu & Wine (Anniversary)",
+        transaction_date=anom_date_1, is_anomaly=True,
+        anomaly_reason="$385.00 is 4.9x higher than your typical Food & Dining expense (median: $78.00)",
+    ))
 
     anom_date_2 = today - timedelta(days=11)
-    db.add(
-        Transaction(
-            user_id=user_id,
-            amount=1199.00,
-            type="expense",
-            category_id=cat_map.get("Shopping"),
-            payment_method="Credit Card",
-            description="Apple Store Ultra HD Studio Monitor",
-            transaction_date=anom_date_2,
-            is_anomaly=True,
-            anomaly_reason="$1199.00 significantly exceeds your normal Shopping spending limit (avg: $54.16)",
-        )
-    )
+    all_objects.append(Transaction(
+        user_id=user_id, amount=1199.00, type="expense",
+        category_id=cat_map.get("Shopping"), payment_method="Credit Card",
+        description="Apple Store Ultra HD Studio Monitor",
+        transaction_date=anom_date_2, is_anomaly=True,
+        anomaly_reason="$1199.00 significantly exceeds your normal Shopping spending limit (avg: $54.16)",
+    ))
 
+    db.add_all(all_objects)
     db.commit()

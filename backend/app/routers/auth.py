@@ -41,7 +41,7 @@ def initialize_user_categories(user_id: int, db: Session):
             is_default=True,
         )
         db.add(category)
-    db.commit()
+    db.flush()
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
@@ -61,17 +61,22 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
             detail="Password must be at least 6 characters long.",
         )
 
-    user = User(
-        name=payload.name,
-        email=payload.email.lower(),
-        password_hash=get_password_hash(payload.password),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        user = User(
+            name=payload.name,
+            email=payload.email.lower(),
+            password_hash=get_password_hash(payload.password),
+        )
+        db.add(user)
+        db.flush()
 
-    # Populate default categories for new user
-    initialize_user_categories(user.id, db)
+        # Populate default categories for new user
+        initialize_user_categories(user.id, db)
+        db.commit()
+        db.refresh(user)
+    except Exception:
+        db.rollback()
+        raise
 
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     return Token(
@@ -83,8 +88,30 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login_user(payload: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email.lower()).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    try:
+        user = db.query(User).filter(User.email == payload.email.lower()).first()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error. Please try again.",
+        )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+        )
+
+    try:
+        if not verify_password(payload.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+            )
+    except HTTPException:
+        raise
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -104,18 +131,34 @@ def demo_login(db: Session = Depends(get_db)):
     from ..seed import seed_demo_data
 
     demo_email = "demo@smartexpense.ai"
-    user = db.query(User).filter(User.email == demo_email).first()
-    if not user:
-        user = User(
-            name="Alex Morgan",
-            email=demo_email,
-            password_hash=get_password_hash("demopassword123"),
+    try:
+        user = db.query(User).filter(User.email == demo_email).first()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database error. Please try again.",
         )
-        db.add(user)
+
+    if not user:
+        try:
+            user = User(
+                name="Alex Morgan",
+                email=demo_email,
+                password_hash=get_password_hash("demopassword123"),
+            )
+            db.add(user)
+            db.flush()
+            initialize_user_categories(user.id, db)
+            seed_demo_data(user.id, db)
+        except Exception:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create demo account. Please try again.",
+            )
+    else:
         db.commit()
-        db.refresh(user)
-        initialize_user_categories(user.id, db)
-        seed_demo_data(user.id, db)
 
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     return Token(
@@ -136,11 +179,11 @@ def update_current_user_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if payload.name:
+    if payload.name is not None:
         current_user.name = payload.name
-    if payload.currency:
+    if payload.currency is not None:
         current_user.currency = payload.currency.upper()
-    if payload.email and payload.email.lower() != current_user.email:
+    if payload.email is not None and payload.email.lower() != current_user.email:
         existing = db.query(User).filter(User.email == payload.email.lower()).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email is already taken.")
