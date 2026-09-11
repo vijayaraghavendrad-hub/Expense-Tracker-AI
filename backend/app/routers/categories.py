@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Category, User, Transaction
+from ..models import Category, User, Transaction, RecurringExpense
 from ..schemas import CategoryCreate, CategoryUpdate, CategoryResponse
 from ..auth import get_current_user
 
@@ -106,10 +106,14 @@ def delete_category(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found.")
 
-    # Nullify transactions pointing to this category before deleting
+    # Nullify transactions and recurring expenses pointing to this category before deleting
     db.query(Transaction).filter(
         Transaction.category_id == category_id,
         Transaction.user_id == current_user.id,
+    ).update({"category_id": None})
+    db.query(RecurringExpense).filter(
+        RecurringExpense.category_id == category_id,
+        RecurringExpense.user_id == current_user.id,
     ).update({"category_id": None})
     db.delete(cat)
     db.commit()

@@ -54,7 +54,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (confirm('Stop all servers and shut down Smart Expense Tracker?')) {
       try {
         await api.shutdownSystem();
-      } catch {}
+      } catch (err) {
+        console.warn('Shutdown request failed (server may already be stopping):', err);
+      }
       window.close();
       document.body.innerHTML = `
         <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#09090b;color:#a1a1aa;font-family:sans-serif;text-align:center;padding:20px;">

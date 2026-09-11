@@ -270,6 +270,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onClick={() => {
                 setType('expense');
                 setCategoryId(undefined);
+                setAiSuggestion(null);
+                setAcceptedAiCat(null);
               }}
               className={`py-1.5 text-xs font-medium rounded-md transition-all ${
                 type === 'expense'
@@ -284,6 +286,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               onClick={() => {
                 setType('income');
                 setCategoryId(undefined);
+                setAiSuggestion(null);
+                setAcceptedAiCat(null);
               }}
               className={`py-1.5 text-xs font-medium rounded-md transition-all ${
                 type === 'income'

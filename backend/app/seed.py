@@ -19,7 +19,6 @@ def seed_demo_data(user_id: int, db: Session):
     db.query(Transaction).filter(Transaction.user_id == user_id).delete()
     db.query(Budget).filter(Budget.user_id == user_id).delete()
     db.query(RecurringExpense).filter(RecurringExpense.user_id == user_id).delete()
-    db.commit()
 
     # 1. Seed Budgets for current month
     budget_allocations = [

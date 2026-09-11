@@ -95,7 +95,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               Projected Spend Next Month
             </span>
             <div className="text-3xl font-bold text-white tracking-tight">
-              {currencySymbol}{forecast?.next_month_estimate.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
+              {currencySymbol}{forecast?.next_month_estimate?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '0.00'}
             </div>
             <p className="text-[11px] text-zinc-400 mt-2">
               Based on historical trends & recurring schedules
@@ -108,7 +108,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               Estimated 90% Confidence Interval
             </span>
             <div className="text-xl font-bold text-zinc-100 tracking-tight">
-              {currencySymbol}{forecast?.lower_bound.toFixed(0)} — {currencySymbol}{forecast?.upper_bound.toFixed(0)}
+              {currencySymbol}{forecast?.lower_bound?.toFixed(0) || '0'} — {currencySymbol}{forecast?.upper_bound?.toFixed(0) || '0'}
             </div>
             <p className="text-[11px] text-zinc-400 mt-2">
               Statistical variance tolerance bounds

@@ -103,10 +103,14 @@ def create_budget(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Verify category exists
+    # Verify category exists (include system categories)
+    from sqlalchemy import or_
     cat = (
         db.query(Category)
-        .filter(Category.id == payload.category_id, Category.user_id == current_user.id)
+        .filter(
+            Category.id == payload.category_id,
+            or_(Category.user_id == current_user.id, Category.user_id.is_(None)),
+        )
         .first()
     )
     if not cat:

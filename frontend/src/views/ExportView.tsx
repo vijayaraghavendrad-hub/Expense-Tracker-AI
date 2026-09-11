@@ -10,6 +10,7 @@ interface ExportViewProps {
   categorySpends: CategorySpendItem[];
   trends: MonthlyTrendItem[];
   currency: string;
+  period?: string;
 }
 
 export const ExportView: React.FC<ExportViewProps> = ({
@@ -18,6 +19,7 @@ export const ExportView: React.FC<ExportViewProps> = ({
   categorySpends,
   trends,
   currency,
+  period = 'month',
 }) => {
   const currencySymbol = getCurrencySymbol(currency);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -33,7 +35,19 @@ export const ExportView: React.FC<ExportViewProps> = ({
   const handleDownloadCsv = async () => {
     setIsDownloading(true);
     try {
-      await api.downloadTransactionsCsv({ currency });
+      const today = new Date();
+      let start_date: string | undefined;
+      const end_date = today.toISOString().split('T')[0];
+      if (period === 'week') {
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        start_date = weekStart.toISOString().split('T')[0];
+      } else if (period === 'month') {
+        start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+      } else if (period === 'year') {
+        start_date = `${today.getFullYear()}-01-01`;
+      }
+      await api.downloadTransactionsCsv({ currency, start_date, end_date });
       setDownloadSuccess(true);
       successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
     } catch {

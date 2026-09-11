@@ -42,6 +42,15 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
 
   const expenseCategories = categories.filter((c) => c.type === 'expense');
 
+  const resetForm = () => {
+    setDescription('');
+    setAmount('');
+    setCategoryId(undefined);
+    setFrequency('monthly');
+    setNextDate(new Date().toISOString().split('T')[0]);
+    setFormError(null);
+  };
+
   const handleCreateRecurring = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -265,7 +274,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-zinc-200">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <h3 className="text-sm font-semibold text-zinc-900">Add Recurring Commitment</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-700">
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="text-zinc-400 hover:text-zinc-700">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -348,7 +357,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
               <div className="pt-3 border-t border-zinc-100 flex items-center justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => { setIsModalOpen(false); setFormError(null); }}
+                  onClick={() => { setIsModalOpen(false); resetForm(); }}
                   className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900"
                 >
                   Cancel

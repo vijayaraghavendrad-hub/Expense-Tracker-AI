@@ -15,7 +15,6 @@ from ..schemas import (
     TransactionListResponse,
 )
 from ..auth import get_current_user
-from ..ml.anomaly import check_transaction_anomaly
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -254,6 +253,7 @@ def export_transactions_csv(
 
     for tx in transactions:
         cat_name = tx.category.name if tx.category else "Uncategorized"
+        tx_currency = tx.currency or chosen_currency
         writer.writerow(
             [
                 tx.id,
@@ -262,7 +262,7 @@ def export_transactions_csv(
                 cat_name,
                 tx.description,
                 f"{tx.amount:.2f}",
-                chosen_currency,
+                tx_currency,
                 tx.payment_method or "Other",
             ]
         )

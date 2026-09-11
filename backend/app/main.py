@@ -63,7 +63,7 @@ auto_shutdown_enabled = os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1"
 def do_shutdown():
     time.sleep(0.5)
     print("Initiating clean shutdown of Smart Expense Tracker...")
-    sys.exit(0)
+    os._exit(0)
 
 
 @app.get("/api/health")
@@ -109,9 +109,9 @@ def auto_shutdown_watchdog():
         time.sleep(4)
         if auto_shutdown_enabled:
             idle_seconds = time.time() - last_heartbeat
-            if idle_seconds > 12:
-                print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-                sys.exit(0)
+                if idle_seconds > 12:
+                    print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
+                    os._exit(0)
 
 
 if auto_shutdown_enabled:
@@ -127,7 +127,7 @@ if dist_dir.exists() and (dist_dir / "index.html").exists():
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
-    @app.get("/{full_path:path}")
+    @app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
     def serve_frontend(full_path: str):
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"error": "Not Found"})

@@ -13,13 +13,35 @@ from .database import get_db
 from .models import User
 from .schemas import TokenData
 
-# Secret configuration — generate a random key if not explicitly set
-SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_hex(32)
+# Secret configuration — persist across restarts by writing to .env if not already set
+def _get_or_create_secret_key() -> str:
+    env_key = os.getenv("SECRET_KEY")
+    if env_key:
+        return env_key
+    env_file = Path(__file__).resolve().parent.parent / ".env"
+    if env_file.exists():
+        with open(env_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("SECRET_KEY="):
+                    return line.split("=", 1)[1].strip().strip("'\"")
+    key = secrets.token_hex(32)
+    try:
+        with open(env_file, "a" if env_file.exists() else "w", encoding="utf-8") as f:
+            if env_file.exists():
+                f.write("\n")
+            f.write(f"SECRET_KEY={key}\n")
+    except Exception:
+        pass
+    return key
+
+
+SECRET_KEY = _get_or_create_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

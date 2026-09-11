@@ -26,6 +26,12 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
 
   const expenseCategories = categories.filter((c) => c.type === 'expense');
 
+  const resetForm = () => {
+    setSelectedCategoryId('');
+    setAmount('');
+    setError(null);
+  };
+
   const handleCreateOrUpdateBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -204,7 +210,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <h3 className="text-sm font-semibold text-zinc-900">Set Monthly Budget</h3>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => { setIsModalOpen(false); resetForm(); }}
                 className="text-zinc-400 hover:text-zinc-700 p-1 rounded"
               >
                 <X className="w-4 h-4" />
@@ -254,7 +260,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
               <div className="pt-3 border-t border-zinc-100 flex items-center justify-end space-x-2">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { setIsModalOpen(false); resetForm(); }}
                   className="px-3 py-1.5 text-xs text-zinc-600 hover:text-zinc-900 rounded"
                 >
                   Cancel

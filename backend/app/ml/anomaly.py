@@ -90,7 +90,7 @@ def scan_user_anomalies(user_id: int, db: Session) -> List[dict]:
                     "category_name": category_name,
                     "transaction_date": tx.transaction_date,
                     "reason": tx.anomaly_reason or "Unusually high spending pattern detected",
-                    "score": 3.0,
+                    "score": tx.anomaly_score if hasattr(tx, "anomaly_score") else 3.0,
                 }
             )
 

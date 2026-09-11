@@ -96,7 +96,22 @@ export function App() {
     checkAuth();
 
     const handleAuthChange = () => {
-      if (!authStorage.getToken()) setUser(null);
+      if (!authStorage.getToken()) {
+        setUser(null);
+        setCategories([]);
+        setTransactions([]);
+        setTotalTransactions(0);
+        setSummary(null);
+        setTrends([]);
+        setCategorySpends([]);
+        setDailyExpenses([]);
+        setInsights([]);
+        setBudgetProgress([]);
+        setRecurringExpenses([]);
+        setAnomalies([]);
+        setForecast(null);
+        setDataError(null);
+      }
     };
     window.addEventListener('auth_state_changed', handleAuthChange);
     return () => window.removeEventListener('auth_state_changed', handleAuthChange);
@@ -223,9 +238,16 @@ export function App() {
     }
   }, [user, loadTransactions]);
 
+  const refreshControllerRef = useRef<AbortController | null>(null);
+
   const handleRefreshAll = useCallback(() => {
-    loadCoreData();
-    loadTransactions();
+    if (refreshControllerRef.current) {
+      refreshControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+    loadCoreData(controller.signal);
+    loadTransactions(controller.signal);
   }, [loadCoreData, loadTransactions]);
 
   const handleResetDemoData = async () => {
@@ -391,6 +413,7 @@ export function App() {
               categorySpends={categorySpends}
               trends={trends}
               currency={currentCurrency}
+              period={period}
             />
           )}
         </main>

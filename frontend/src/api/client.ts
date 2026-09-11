@@ -34,10 +34,15 @@ async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = authStorage.getToken();
+  const method = (options.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
+
+  // Only set Content-Type for requests with a body (not GET/HEAD)
+  if (options.body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -191,8 +196,6 @@ export const api = {
     if (params?.currency) query.append('currency', params.currency);
     if (params?.start_date) query.append('start_date', params.start_date);
     if (params?.end_date) query.append('end_date', params.end_date);
-    const token = authStorage.getToken();
-    if (token) query.append('token', token);
     return `${API_BASE}/transactions/export/csv?${query.toString()}`;
   },
 
@@ -238,7 +241,7 @@ export const api = {
   },
 
   createBudget: (data: { category_id: number; amount: number; month: number; year: number }) =>
-    apiRequest('/budgets/', {
+    apiRequest<BudgetProgress>('/budgets/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

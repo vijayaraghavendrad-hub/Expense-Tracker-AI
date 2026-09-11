@@ -241,65 +241,71 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Daily Bar Chart */}
         <div className="h-56 w-full pt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dailyExpenses} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis
-                dataKey="day_number"
-                tick={{ fontSize: 11, fill: '#71717a' }}
-                axisLine={{ stroke: '#e4e4e7' }}
-                tickLine={false}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: '#71717a' }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(val) => `${currencySymbol}${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const item = payload[0].payload as DailyExpenseItem;
-                    return (
-                      <div className="bg-zinc-900 text-white p-2.5 rounded-lg shadow-xl text-xs space-y-1 border border-zinc-800">
-                        <div className="font-semibold text-zinc-200">
-                          {item.date} ({item.day_name})
-                        </div>
-                        <div className="text-emerald-400 font-medium">
-                          Total Spent: {currencySymbol}{item.total_expense.toFixed(2)}
-                        </div>
-                        <div className="text-zinc-400 text-[11px]">
-                          Transactions: {item.transaction_count}
-                        </div>
-                        {item.top_transaction && (
-                          <div className="text-zinc-400 text-[11px] truncate max-w-xs">
-                            Top: {item.top_transaction}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-zinc-500">
-                          {item.is_above_average ? '▲ Above daily average' : '▼ Below daily average'}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              {avgDailySpend > 0 && (
-                <ReferenceLine
-                  y={avgDailySpend}
-                  stroke="#10b981"
-                  strokeDasharray="3 3"
-                  strokeWidth={1.5}
+          {dailyExpenses.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailyExpenses} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <XAxis
+                  dataKey="day_number"
+                  tick={{ fontSize: 11, fill: '#71717a' }}
+                  axisLine={{ stroke: '#e4e4e7' }}
+                  tickLine={false}
+                  interval="preserveStartEnd"
                 />
-              )}
-              <Bar
-                dataKey="total_expense"
-                fill="#18181b"
-                radius={[3, 3, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+                <YAxis
+                  tick={{ fontSize: 11, fill: '#71717a' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(val) => `${currencySymbol}${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const item = payload[0].payload as DailyExpenseItem;
+                      return (
+                        <div className="bg-zinc-900 text-white p-2.5 rounded-lg shadow-xl text-xs space-y-1 border border-zinc-800">
+                          <div className="font-semibold text-zinc-200">
+                            {item.date} ({item.day_name})
+                          </div>
+                          <div className="text-emerald-400 font-medium">
+                            Total Spent: {currencySymbol}{item.total_expense.toFixed(2)}
+                          </div>
+                          <div className="text-zinc-400 text-[11px]">
+                            Transactions: {item.transaction_count}
+                          </div>
+                          {item.top_transaction && (
+                            <div className="text-zinc-400 text-[11px] truncate max-w-xs">
+                              Top: {item.top_transaction}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-zinc-500">
+                            {item.is_above_average ? '▲ Above daily average' : '▼ Below daily average'}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                {avgDailySpend > 0 && (
+                  <ReferenceLine
+                    y={avgDailySpend}
+                    stroke="#10b981"
+                    strokeDasharray="3 3"
+                    strokeWidth={1.5}
+                  />
+                )}
+                <Bar
+                  dataKey="total_expense"
+                  fill="#18181b"
+                  radius={[3, 3, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-xs text-zinc-400">
+              No expense data available for this period
+            </div>
+          )}
         </div>
       </div>
 

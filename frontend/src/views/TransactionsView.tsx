@@ -70,10 +70,15 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const handleExportCsv = async () => {
     setIsExporting(true);
     try {
+      const today = new Date();
+      const end_date = today.toISOString().split('T')[0];
+      const start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
       await api.downloadTransactionsCsv({
         category_id: selectedCategory,
         type: selectedType || undefined,
         currency,
+        start_date,
+        end_date,
       });
     } catch {
       const url = api.getExportCsvUrl({

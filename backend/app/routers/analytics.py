@@ -383,6 +383,10 @@ def get_daily_expenses(
     """Returns day-by-day expense trackdown for the financial overview."""
     start, end = get_period_dates(period, start_date, end_date)
 
+    # Cap 'all' period to 365 days to prevent unbounded queries
+    if period == "all" and (end - start).days > 365:
+        start = end - timedelta(days=365)
+
     # Fetch daily aggregated expenses
     daily_results = (
         db.query(
