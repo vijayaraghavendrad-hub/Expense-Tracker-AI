@@ -1,7 +1,5 @@
 from datetime import date, timedelta
 from typing import Dict, List
-import numpy as np
-from sklearn.linear_model import Ridge
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..models import Transaction
@@ -80,6 +78,8 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
         }
 
     # Recency-weighted regression
+    import numpy as np
+    from sklearn.linear_model import Ridge
     n = len(expenses)
     X = np.arange(n).reshape(-1, 1)
     y = np.array(expenses)

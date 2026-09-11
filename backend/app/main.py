@@ -22,8 +22,11 @@ from .routers import (
     ai_router,
 )
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables — wrapped so startup doesn't crash on transient DB errors
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"Warning: Could not create database tables on startup: {e}", file=sys.stderr)
 
 app = FastAPI(
     title="Smart Expense Tracker API",

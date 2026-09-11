@@ -1,9 +1,24 @@
 import re
 import threading
 from typing import Dict, List, Tuple
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
+
+
+# Lazy-load sklearn to avoid slow startup
+_pipeline_cls = None
+_tfidf_cls = None
+_lr_cls = None
+_pipeline_mod = None
+
+
+def _ensure_sklearn():
+    global _pipeline_cls, _tfidf_cls, _lr_cls, _pipeline_mod
+    if _pipeline_cls is None:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import Pipeline
+        _tfidf_cls = TfidfVectorizer
+        _lr_cls = LogisticRegression
+        _pipeline_cls = Pipeline
 
 
 # Curated seed training data covering everyday real-world expenses
@@ -163,18 +178,19 @@ class ExpenseClassifier:
     def __init__(self):
         self._lock = threading.Lock()
         self.training_data: List[Tuple[str, str]] = list(SEED_DATA)
-        self.model: Pipeline = Pipeline(
-            [
-                ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1, max_features=2500)),
-                ("clf", LogisticRegression(C=2.0, max_iter=500, random_state=42)),
-            ]
-        )
+        self.model = None
         self._is_trained = False
-        self.train()
 
     def train(self):
+        _ensure_sklearn()
         texts = [clean_text(item[0]) for item in self.training_data]
         labels = [item[1] for item in self.training_data]
+        self.model = _pipeline_cls(
+            [
+                ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
+                ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
+            ]
+        )
         self.model.fit(texts, labels)
         self._is_trained = True
 

@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple
-import numpy as np
 from sqlalchemy.orm import Session
 from ..models import Transaction, Category
 
@@ -38,6 +37,7 @@ def check_transaction_anomaly(
             return True, f"${amount:.2f} is unusually high for initial transactions in {category_name}", 2.5
         return False, None, 0.0
 
+    import numpy as np
     amounts_arr = np.array(amounts, dtype=float)
     q25, q50, q75 = np.percentile(amounts_arr, [25, 50, 75])
     iqr = q75 - q25
