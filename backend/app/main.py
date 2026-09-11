@@ -116,8 +116,9 @@ def auto_shutdown_watchdog():
 
 
 def _start_watchdog():
-    t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
-    t.start()
+    if os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1":
+        t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
+        t.start()
 
 _start_watchdog()
 
