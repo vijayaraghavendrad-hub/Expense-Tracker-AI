@@ -11,7 +11,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://your-app.vercel.app
+        value: https://your-app.vercel.app,http://localhost:5173
       - key: ENABLE_AUTO_SHUTDOWN
         value: "0"
       - key: PYTHON_VERSION

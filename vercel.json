@@ -4,6 +4,7 @@
   "installCommand": "cd frontend && npm install",
   "framework": "vite",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://smart-expense-tracker-api.onrender.com/api/$1" },
     { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
