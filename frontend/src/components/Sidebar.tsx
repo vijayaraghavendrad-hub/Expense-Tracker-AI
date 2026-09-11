@@ -57,15 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } catch (err) {
         console.warn('Shutdown request failed (server may already be stopping):', err);
       }
-      window.close();
-      document.body.innerHTML = `
-        <div style="height:100vh;display:flex;align-items:center;justify-content:center;background:#09090b;color:#a1a1aa;font-family:sans-serif;text-align:center;padding:20px;">
-          <div>
-            <h2 style="color:#ffffff;font-size:20px;margin-bottom:8px;">Smart Expense Tracker Stopped</h2>
-            <p style="font-size:14px;color:#71717a;">All background servers have been cleanly shut down. You may safely close this window.</p>
-          </div>
-        </div>
-      `;
+      window.location.href = 'about:blank';
     }
   };
 
@@ -162,6 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={handleShutdownApp}
               title="Stop server & exit app"
+              aria-label="Stop server and exit application"
               className="p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
             >
               <Power className="w-4 h-4" />
@@ -169,6 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onLogout}
               title="Log out"
+              aria-label="Log out"
               className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
             >
               <LogOut className="w-4 h-4" />

@@ -59,6 +59,12 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const [isExporting, setIsExporting] = React.useState(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
   const debouncedSetSearch = useCallback((value: string) => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
@@ -69,10 +75,10 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
   const handleExportCsv = async () => {
     setIsExporting(true);
+    const today = new Date();
+    const end_date = today.toISOString().split('T')[0];
+    const start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
     try {
-      const today = new Date();
-      const end_date = today.toISOString().split('T')[0];
-      const start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
       await api.downloadTransactionsCsv({
         category_id: selectedCategory,
         type: selectedType || undefined,
@@ -81,12 +87,17 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         end_date,
       });
     } catch {
-      const url = api.getExportCsvUrl({
-        category_id: selectedCategory,
-        type: selectedType || undefined,
-        currency,
-      });
-      window.open(url, '_blank');
+      try {
+        await api.downloadTransactionsCsv({
+          category_id: selectedCategory,
+          type: selectedType || undefined,
+          currency,
+          start_date,
+          end_date,
+        });
+      } catch {
+        // CSV download failed
+      }
     } finally {
       setIsExporting(false);
     }
@@ -106,6 +117,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
               debouncedSetSearch(e.target.value);
             }}
             placeholder="Search by description..."
+            aria-label="Search transactions by description"
             className="w-full pl-9 pr-4 py-1.5 text-xs bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900 focus:bg-white"
           />
         </div>
@@ -125,6 +137,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
               setSelectedType(e.target.value);
               setPage(1);
             }}
+            aria-label="Filter by transaction type"
             className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           >
             <option value="">All Types</option>
@@ -139,6 +152,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
               setSelectedCategory(e.target.value ? Number(e.target.value) : undefined);
               setPage(1);
             }}
+            aria-label="Filter by category"
             className="text-xs bg-zinc-50 border border-zinc-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           >
             <option value="">All Categories</option>
@@ -153,6 +167,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           <button
             onClick={handleExportCsv}
             disabled={isExporting}
+            aria-label="Export transactions as CSV"
             className="px-3 py-1.5 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg shadow-xs transition-colors flex items-center space-x-1.5 disabled:opacity-60 cursor-pointer"
             title="Download complete transaction ledger as CSV"
           >

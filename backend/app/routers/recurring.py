@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import RecurringExpense, Transaction, Category, User
@@ -59,7 +60,10 @@ def create_recurring_expense(
     if payload.category_id:
         cat = (
             db.query(Category)
-            .filter(Category.id == payload.category_id, Category.user_id == current_user.id)
+            .filter(
+                Category.id == payload.category_id,
+                or_(Category.user_id == current_user.id, Category.user_id.is_(None)),
+            )
             .first()
         )
         if not cat:
@@ -96,6 +100,16 @@ def update_recurring_expense(
         raise HTTPException(status_code=404, detail="Recurring expense not found.")
 
     if payload.category_id is not None:
+        cat = (
+            db.query(Category)
+            .filter(
+                Category.id == payload.category_id,
+                or_(Category.user_id == current_user.id, Category.user_id.is_(None)),
+            )
+            .first()
+        )
+        if not cat:
+            raise HTTPException(status_code=400, detail="Invalid category ID.")
         rec.category_id = payload.category_id
     if payload.amount is not None:
         rec.amount = payload.amount

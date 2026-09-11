@@ -1,4 +1,5 @@
 import re
+import threading
 from typing import Dict, List, Tuple
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -160,6 +161,7 @@ def clean_text(text: str) -> str:
 
 class ExpenseClassifier:
     def __init__(self):
+        self._lock = threading.Lock()
         self.training_data: List[Tuple[str, str]] = list(SEED_DATA)
         self.model: Pipeline = Pipeline(
             [
@@ -232,10 +234,10 @@ class ExpenseClassifier:
     def add_feedback_and_retrain(self, description: str, actual_category: str):
         if not description or not actual_category:
             return
-        # Append 3x weight for user correction
-        for _ in range(3):
-            self.training_data.append((description, actual_category))
-        self.train()
+        with self._lock:
+            for _ in range(3):
+                self.training_data.append((description, actual_category))
+            self.train()
 
 
 # Global singleton instance

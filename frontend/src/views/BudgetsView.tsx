@@ -146,6 +146,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                   <button
                     onClick={() => handleDeleteBudget(item.id)}
                     title="Remove Budget"
+                    aria-label={`Remove budget for ${item.category_name}`}
                     className="text-zinc-400 hover:text-rose-600 p-1 rounded"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -211,6 +212,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
               <h3 className="text-sm font-semibold text-zinc-900">Set Monthly Budget</h3>
               <button
                 onClick={() => { setIsModalOpen(false); resetForm(); }}
+                aria-label="Close budget modal"
                 className="text-zinc-400 hover:text-zinc-700 p-1 rounded"
               >
                 <X className="w-4 h-4" />
@@ -230,6 +232,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                   required
                   value={selectedCategoryId}
                   onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+                  aria-label="Select expense category for budget"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 >
                   <option value="">Select Category</option>
@@ -253,6 +256,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="e.g. 500"
+                  aria-label="Monthly budget limit amount"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>

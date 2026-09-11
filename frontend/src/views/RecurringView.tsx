@@ -234,6 +234,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   <td className="py-3.5 px-4 text-center">
                     <button
                       onClick={() => handleToggleActive(item)}
+                      aria-label={item.is_active ? `Pause ${item.description}` : `Resume ${item.description}`}
                       className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
                         item.is_active
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -248,6 +249,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   <td className="py-3.5 px-4 text-right">
                     <button
                       onClick={() => handleDelete(item.id)}
+                      aria-label={`Delete recurring expense: ${item.description}`}
                       className="p-1 text-zinc-400 hover:text-rose-600 rounded"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -274,7 +276,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-zinc-200">
             <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
               <h3 className="text-sm font-semibold text-zinc-900">Add Recurring Commitment</h3>
-              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="text-zinc-400 hover:text-zinc-700">
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} aria-label="Close recurring modal" className="text-zinc-400 hover:text-zinc-700">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -293,6 +295,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="e.g. Netflix 4K, Gym Membership, Rent"
+                  aria-label="Recurring expense description"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
@@ -307,6 +310,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
+                  aria-label="Recurring expense amount"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 />
               </div>
@@ -316,6 +320,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                 <select
                   value={categoryId || ''}
                   onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : undefined)}
+                  aria-label="Recurring expense category"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 >
                   <option value="">Select Category</option>
@@ -333,6 +338,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   <select
                     value={frequency}
                     onChange={(e) => setFrequency(e.target.value as any)}
+                    aria-label="Recurring frequency"
                     className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg"
                   >
                     <option value="monthly">Monthly</option>
@@ -349,6 +355,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                     required
                     value={nextDate}
                     onChange={(e) => setNextDate(e.target.value)}
+                    aria-label="Next due date"
                     className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg"
                   />
                 </div>

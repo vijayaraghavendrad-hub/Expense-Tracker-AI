@@ -150,7 +150,7 @@ def get_next_month_label(current_month_str: str) -> str:
             return f"{year + 1}-01"
         else:
             return f"{year}-{month + 1:02d}"
-    except Exception:
+    except (ValueError, IndexError):
         today = date.today()
         if today.month == 12:
             return f"{today.year + 1}-01"

@@ -1,7 +1,8 @@
 from datetime import date
+import calendar
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from ..database import get_db
 from ..models import Budget, Category, Transaction, User
@@ -30,16 +31,16 @@ def get_budgets_progress(
             Budget.month == target_month,
             Budget.year == target_year,
         )
+        .options(joinedload(Budget.category))
         .all()
     )
 
+    _, month_last_day = calendar.monthrange(target_year, target_month)
+    month_start = date(target_year, target_month, 1)
+    month_end = date(target_year, target_month, month_last_day)
+
     results = []
     for b in budgets:
-        # Use date range comparison for SQLite + PostgreSQL compatibility
-        import calendar
-        _, month_last_day = calendar.monthrange(target_year, target_month)
-        month_start = date(target_year, target_month, 1)
-        month_end = date(target_year, target_month, month_last_day)
 
         spent = (
             db.query(func.sum(Transaction.amount))

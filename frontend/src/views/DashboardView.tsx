@@ -46,11 +46,16 @@ interface DashboardViewProps {
   budgetProgress: BudgetProgress[];
   recentTransactions: Transaction[];
   currency: string;
+  isLoading?: boolean;
   period?: string;
   onPeriodChange?: (period: string) => void;
   onNavigateTransactions: () => void;
   onNavigateBudgets: () => void;
 }
+
+const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse bg-zinc-200 rounded ${className}`} />
+);
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   summary,
@@ -61,6 +66,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   budgetProgress,
   recentTransactions,
   currency,
+  isLoading = false,
   period = 'month',
   onPeriodChange,
   onNavigateTransactions,
@@ -78,6 +84,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
+      {isLoading && !summary && (
+        <>
+          {/* Stat Cards Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white p-5 rounded-xl border border-zinc-200/90 shadow-sm">
+                <Skeleton className="h-3 w-24 mb-3" />
+                <Skeleton className="h-7 w-32 mb-2" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
+          {/* Chart Skeleton */}
+          <div className="bg-white p-6 rounded-2xl border border-zinc-200/90 shadow-sm">
+            <Skeleton className="h-4 w-48 mb-4" />
+            <Skeleton className="h-56 w-full" />
+          </div>
+          {/* Insights Skeleton */}
+          <div className="bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-5">
+            <Skeleton className="h-4 w-40 bg-zinc-700 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-zinc-800/80 rounded-xl p-3.5">
+                  <Skeleton className="h-3 w-28 bg-zinc-700 mb-2" />
+                  <Skeleton className="h-3 w-full bg-zinc-700" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {!isLoading && (
+      <>
       {/* Exceeded Budget Alert Banner */}
       {exceededBudgets.length > 0 && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between">
@@ -175,7 +215,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="text-2xl font-bold text-zinc-900 tracking-tight">
-            {currencySymbol}{summary?.avg_daily_spend.toFixed(2) || '0.00'}
+            {currencySymbol}{(summary?.avg_daily_spend ?? 0).toFixed(2)}
             <span className="text-xs text-zinc-400 font-normal"> / day</span>
           </div>
           <div className="mt-2 text-[11px] text-zinc-500 truncate">
@@ -608,6 +648,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

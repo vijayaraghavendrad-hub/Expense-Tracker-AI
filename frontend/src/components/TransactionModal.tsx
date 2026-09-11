@@ -148,6 +148,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError(null);
 
     const parsedAmount = parseFloat(amount);
@@ -250,6 +251,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             className="text-zinc-400 hover:text-zinc-700 p-1.5 rounded-lg hover:bg-zinc-100 transition-colors"
           >
             <X className="w-4 h-4" />
@@ -310,6 +312,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   setCurrency(val);
                   onCurrencyChange?.(val);
                 }}
+                aria-label="Transaction currency"
                 className="w-full px-2.5 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 font-medium"
               >
                 {CURRENCIES.map((c) => (
@@ -335,6 +338,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
+                  aria-label="Transaction amount"
                   className="w-full pl-8 pr-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
                 />
               </div>
@@ -358,6 +362,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g., Starbucks cold brew, Whole Foods groceries"
+              aria-label="Transaction description"
               className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             />
 
@@ -424,6 +429,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                     value={newCatColor}
                     onChange={(e) => setNewCatColor(e.target.value)}
                     className="w-8 h-8 rounded-lg border border-zinc-300 cursor-pointer p-0.5"
+                    aria-label="Category color"
                     title="Choose color"
                   />
                   <button
@@ -441,6 +447,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <select
               value={categoryId || ''}
               onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : undefined)}
+              aria-label="Transaction category"
               className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900"
             >
               <option value="">Select a category</option>
@@ -461,6 +468,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 required
                 value={transactionDate}
                 onChange={(e) => setTransactionDate(e.target.value)}
+                aria-label="Transaction date"
                 className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
               />
             </div>
@@ -469,6 +477,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
+                aria-label="Payment method"
                 className="w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900"
               >
                 <option value="Credit Card">Credit Card</option>

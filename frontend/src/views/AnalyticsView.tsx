@@ -196,8 +196,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     return (
                       <div className="bg-zinc-900 text-white p-2.5 rounded-lg text-xs shadow-xl border border-zinc-800 space-y-1">
                         <p className="font-semibold text-zinc-300">{label}</p>
-                        <p className="text-emerald-400">Income: {currencySymbol}{Number(payload[0]?.value).toLocaleString()}</p>
-                        <p className="text-zinc-400">Expenses: {currencySymbol}{Number(payload[1]?.value).toLocaleString()}</p>
+                        <p className="text-emerald-400">Income: {currencySymbol}{Number(payload[0]?.value ?? 0).toLocaleString()}</p>
+                        <p className="text-zinc-400">Expenses: {currencySymbol}{Number(payload[1]?.value ?? 0).toLocaleString()}</p>
                       </div>
                     );
                   }

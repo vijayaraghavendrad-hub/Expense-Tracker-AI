@@ -38,7 +38,8 @@ def get_transactions(
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
 
     if search and search.strip():
-        query = query.filter(Transaction.description.ilike(f"%{search.strip()}%"))
+        escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
+        query = query.filter(Transaction.description.ilike(f"%{escaped}%"))
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
     if payment_method:
@@ -221,7 +222,8 @@ def export_transactions_csv(
     query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
 
     if search and search.strip():
-        query = query.filter(Transaction.description.ilike(f"%{search.strip()}%"))
+        escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
+        query = query.filter(Transaction.description.ilike(f"%{escaped}%"))
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
     if payment_method:
@@ -233,7 +235,8 @@ def export_transactions_csv(
     if end_date:
         query = query.filter(Transaction.transaction_date <= end_date)
 
-    transactions = query.order_by(Transaction.transaction_date.desc()).all()
+    from sqlalchemy.orm import joinedload
+    transactions = query.options(joinedload(Transaction.category)).order_by(Transaction.transaction_date.desc()).all()
     chosen_currency = currency or getattr(current_user, "currency", "USD") or "USD"
 
     output = io.StringIO()

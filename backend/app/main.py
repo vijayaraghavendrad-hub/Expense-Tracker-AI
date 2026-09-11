@@ -63,7 +63,7 @@ auto_shutdown_enabled = os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1"
 def do_shutdown():
     time.sleep(0.5)
     print("Initiating clean shutdown of Smart Expense Tracker...")
-    os._exit(0)
+    sys.exit(0)
 
 
 @app.get("/api/health")
@@ -111,7 +111,7 @@ def auto_shutdown_watchdog():
             idle_seconds = time.time() - last_heartbeat
             if idle_seconds > 12:
                 print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-                os._exit(0)
+                sys.exit(0)
 
 
 if auto_shutdown_enabled:

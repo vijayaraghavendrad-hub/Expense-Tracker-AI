@@ -38,7 +38,9 @@ export function App() {
   const handleCurrencyChange = (newCurr: string) => {
     setCurrentCurrency(newCurr);
     localStorage.setItem('smart_expense_currency', newCurr);
-    api.updateProfile({ currency: newCurr }).catch(() => {});
+    api.updateProfile({ currency: newCurr }).catch((err) => {
+      console.warn('Failed to persist currency preference:', err);
+    });
   };
 
   // Shared application state
@@ -64,6 +66,7 @@ export function App() {
 
   // Error state for data fetching
   const [dataError, setDataError] = useState<string | null>(null);
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -125,14 +128,11 @@ export function App() {
 
     const interval = setInterval(() => {
       api.sendHeartbeat().catch(() => {});
-    }, 4000);
+    }, 30000);
 
     const handleUnload = () => {
       try {
-        const beaconUrl =
-          window.location.port === '5173'
-            ? 'http://localhost:8000/api/system/leave'
-            : '/api/system/leave';
+        const beaconUrl = '/api/system/leave';
         if (navigator.sendBeacon) {
           navigator.sendBeacon(beaconUrl);
         }
@@ -149,19 +149,9 @@ export function App() {
   // Fetch Core Data when user or period changes — with AbortController for race condition prevention
   const loadCoreData = useCallback(async (signal?: AbortSignal) => {
     if (!user) return;
+    setIsDataLoading(true);
     try {
-      const [
-        catsData,
-        summaryData,
-        trendsData,
-        catSpendsData,
-        dailyExpensesData,
-        insightsData,
-        budgetsData,
-        recurringData,
-        anomaliesData,
-        forecastData,
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         api.getCategories(),
         api.getSummary(period),
         api.getTrajectory(period),
@@ -176,22 +166,34 @@ export function App() {
 
       if (signal?.aborted) return;
 
-      setCategories(catsData);
-      setSummary(summaryData);
-      setTrends(trendsData);
-      setCategorySpends(catSpendsData);
-      setDailyExpenses(dailyExpensesData);
-      setInsights(insightsData.insights);
-      setBudgetProgress(budgetsData);
-      setRecurringExpenses(recurringData);
-      setAnomalies(anomaliesData);
-      setForecast(forecastData);
-      setDataError(null);
+      const [catsResult, summaryResult, trendsResult, catSpendsResult, dailyExpensesResult, insightsResult, budgetsResult, recurringResult, anomaliesResult, forecastResult] = results;
+
+      if (catsResult.status === 'fulfilled') setCategories(catsResult.value);
+      if (summaryResult.status === 'fulfilled') setSummary(summaryResult.value);
+      if (trendsResult.status === 'fulfilled') setTrends(trendsResult.value);
+      if (catSpendsResult.status === 'fulfilled') setCategorySpends(catSpendsResult.value);
+      if (dailyExpensesResult.status === 'fulfilled') setDailyExpenses(dailyExpensesResult.value);
+      if (insightsResult.status === 'fulfilled') setInsights(insightsResult.value.insights);
+      if (budgetsResult.status === 'fulfilled') setBudgetProgress(budgetsResult.value);
+      if (recurringResult.status === 'fulfilled') setRecurringExpenses(recurringResult.value);
+      if (anomaliesResult.status === 'fulfilled') setAnomalies(anomaliesResult.value);
+      if (forecastResult.status === 'fulfilled') setForecast(forecastResult.value);
+
+      const failedCount = results.filter(r => r.status === 'rejected').length;
+      if (failedCount === results.length) {
+        setDataError('Failed to load dashboard data. Please try again.');
+      } else if (failedCount > 0) {
+        setDataError(`Some data failed to load (${failedCount}/${results.length} endpoints). Partial data shown.`);
+      } else {
+        setDataError(null);
+      }
     } catch (err) {
       if (!signal?.aborted) {
         console.error('Error fetching core dashboard data:', err);
         setDataError('Failed to load dashboard data. Please try again.');
       }
+    } finally {
+      setIsDataLoading(false);
     }
   }, [user, period, currentCurrency]);
 
@@ -348,6 +350,7 @@ export function App() {
               budgetProgress={budgetProgress}
               recentTransactions={transactions}
               currency={currentCurrency}
+              isLoading={isDataLoading}
               period={period}
               onPeriodChange={(newPeriod) => setPeriod(newPeriod)}
               onNavigateTransactions={() => setActiveTab('transactions')}

@@ -32,8 +32,9 @@ def _get_or_create_secret_key() -> str:
             if env_file.exists():
                 f.write("\n")
             f.write(f"SECRET_KEY={key}\n")
-    except Exception:
-        pass
+    except Exception as e:
+        import sys
+        print(f"Warning: Could not persist SECRET_KEY to .env: {e}", file=sys.stderr)
     return key
 
 

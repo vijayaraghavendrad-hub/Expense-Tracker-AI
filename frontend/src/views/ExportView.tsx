@@ -24,6 +24,7 @@ export const ExportView: React.FC<ExportViewProps> = ({
   const currencySymbol = getCurrencySymbol(currency);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -51,8 +52,13 @@ export const ExportView: React.FC<ExportViewProps> = ({
       setDownloadSuccess(true);
       successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
     } catch {
-      const url = api.getExportCsvUrl({ currency });
-      window.open(url, '_blank');
+      try {
+        await api.downloadTransactionsCsv({ currency });
+        setDownloadSuccess(true);
+        successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
+      } catch {
+        setError('Failed to download CSV. Please try again.');
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -87,11 +93,12 @@ export const ExportView: React.FC<ExportViewProps> = ({
 
           <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
             <span className="text-[11px] text-zinc-400 font-mono">Currency: {currency} ({currencySymbol})</span>
-            <button
-              onClick={handleDownloadCsv}
-              disabled={isDownloading}
-              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm disabled:opacity-60 cursor-pointer"
-            >
+              <button
+                onClick={handleDownloadCsv}
+                disabled={isDownloading}
+                aria-label="Download transactions as CSV file"
+                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors shadow-sm disabled:opacity-60 cursor-pointer"
+              >
               <Download className="w-3.5 h-3.5" />
               <span>{isDownloading ? 'Preparing CSV...' : 'Download CSV'}</span>
             </button>
@@ -113,10 +120,11 @@ export const ExportView: React.FC<ExportViewProps> = ({
 
           <div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between">
             <span className="text-[11px] text-zinc-400 font-mono">Print to PDF / Paper</span>
-            <button
-              onClick={handlePrintPdf}
-              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold bg-white border border-zinc-300 text-zinc-800 rounded-lg hover:bg-zinc-50 transition-colors shadow-sm"
-            >
+              <button
+                onClick={handlePrintPdf}
+                aria-label="Print or save as PDF"
+                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold bg-white border border-zinc-300 text-zinc-800 rounded-lg hover:bg-zinc-50 transition-colors shadow-sm"
+              >
               <Printer className="w-3.5 h-3.5" />
               <span>Print Report</span>
             </button>
@@ -128,6 +136,12 @@ export const ExportView: React.FC<ExportViewProps> = ({
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center space-x-2 no-print">
           <CheckCircle className="w-4 h-4 text-emerald-600" />
           <span>CSV download started successfully!</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl no-print">
+          {error}
         </div>
       )}
 

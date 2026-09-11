@@ -78,13 +78,13 @@ def update_category(
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found.")
 
-    if payload.name:
+    if payload.name is not None:
         cat.name = payload.name.strip()
-    if payload.type:
+    if payload.type is not None:
         cat.type = payload.type
-    if payload.icon:
+    if payload.icon is not None:
         cat.icon = payload.icon
-    if payload.color:
+    if payload.color is not None:
         cat.color = payload.color
 
     db.commit()

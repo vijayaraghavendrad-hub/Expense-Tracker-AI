@@ -2,7 +2,7 @@ import calendar
 from datetime import date, timedelta
 import random
 from sqlalchemy.orm import Session
-from .models import Transaction, Category, Budget, RecurringExpense
+from .models import Transaction, Category, Budget, RecurringExpense, MLPrediction
 
 
 def seed_demo_data(user_id: int, db: Session):
@@ -19,6 +19,7 @@ def seed_demo_data(user_id: int, db: Session):
     db.query(Transaction).filter(Transaction.user_id == user_id).delete()
     db.query(Budget).filter(Budget.user_id == user_id).delete()
     db.query(RecurringExpense).filter(RecurringExpense.user_id == user_id).delete()
+    db.query(MLPrediction).filter(MLPrediction.user_id == user_id).delete()
 
     # 1. Seed Budgets for current month
     budget_allocations = [

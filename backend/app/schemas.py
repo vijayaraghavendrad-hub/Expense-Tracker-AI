@@ -90,7 +90,7 @@ class TransactionUpdate(BaseModel):
     category_id: Optional[int] = None
     payment_method: Optional[str] = None
     currency: Optional[str] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, min_length=1, max_length=255)
     transaction_date: Optional[date] = None
 
 
@@ -169,9 +169,9 @@ class RecurringExpenseCreate(RecurringExpenseBase):
 class RecurringExpenseUpdate(BaseModel):
     category_id: Optional[int] = None
     amount: Optional[float] = Field(None, gt=0)
-    frequency: Optional[str] = None
+    frequency: Optional[str] = Field(None, pattern="^(daily|weekly|monthly|yearly)$")
     next_date: Optional[date] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, min_length=1, max_length=255)
     is_active: Optional[bool] = None
 
 

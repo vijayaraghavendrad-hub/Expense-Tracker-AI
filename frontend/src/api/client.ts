@@ -51,6 +51,7 @@ async function apiRequest<T>(
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
+    signal: options.signal,
   });
 
   if (response.status === 401) {
@@ -229,7 +230,7 @@ export const api = {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
   },
 
   // Budgets

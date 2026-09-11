@@ -71,9 +71,11 @@ def scan_user_anomalies(user_id: int, db: Session) -> List[dict]:
     """
     Scans all past transactions for a user and flags anomalies.
     """
+    from sqlalchemy.orm import joinedload
     transactions = (
         db.query(Transaction)
         .filter(Transaction.user_id == user_id, Transaction.type == "expense")
+        .options(joinedload(Transaction.category))
         .order_by(Transaction.transaction_date.desc())
         .all()
     )
@@ -90,7 +92,7 @@ def scan_user_anomalies(user_id: int, db: Session) -> List[dict]:
                     "category_name": category_name,
                     "transaction_date": tx.transaction_date,
                     "reason": tx.anomaly_reason or "Unusually high spending pattern detected",
-                    "score": tx.anomaly_score if hasattr(tx, "anomaly_score") else 3.0,
+                    "score": 3.0,
                 }
             )
 
