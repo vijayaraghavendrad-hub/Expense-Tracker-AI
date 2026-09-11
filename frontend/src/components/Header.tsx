@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Plus, AlertTriangle } from 'lucide-react';
 import type { NavTab } from './Sidebar';
 import { CURRENCIES } from '../utils/currency';

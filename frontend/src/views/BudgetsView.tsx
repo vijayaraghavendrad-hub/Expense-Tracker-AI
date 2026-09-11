@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Plus, Target, AlertTriangle, Trash2, X } from 'lucide-react';
 import type { BudgetProgress, Category } from '../types';
 import { api } from '../api/client';
@@ -19,7 +20,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
 }) => {
   const currencySymbol = getCurrencySymbol(currency);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [amount, setAmount] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
   const expenseCategories = categories.filter((c) => c.type === 'expense');
 
   const resetForm = () => {
-    setSelectedCategoryId('');
+    setSelectedCategoryId(null);
     setAmount('');
     setError(null);
   };
@@ -55,7 +56,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
         year: today.getFullYear(),
       });
       setIsModalOpen(false);
-      setSelectedCategoryId('');
+      setSelectedCategoryId(null);
       setAmount('');
       onRefresh();
     } catch (err: any) {
@@ -230,8 +231,8 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                 <label className="block text-xs font-medium text-zinc-700 mb-1">Expense Category</label>
                 <select
                   required
-                  value={selectedCategoryId}
-                  onChange={(e) => setSelectedCategoryId(Number(e.target.value))}
+                  value={selectedCategoryId ?? ''}
+                  onChange={(e) => setSelectedCategoryId(e.target.value ? Number(e.target.value) : null)}
                   aria-label="Select expense category for budget"
                   className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-zinc-900"
                 >

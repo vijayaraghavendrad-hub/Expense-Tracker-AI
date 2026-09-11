@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import {
   Sparkles,
   Activity,
@@ -143,7 +143,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="mt-6 pt-4 border-t border-zinc-700/60">
             <div className="text-xs font-semibold text-zinc-300 mb-3 flex items-center space-x-2">
               <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Historical Actuals & Extrapolated Projection</span>
+              <span>Historical Spending & Projected Trend</span>
             </div>
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -167,7 +167,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       return null;
                     }}
                   />
-                  <Line type="monotone" dataKey="actual" name="Historical Actual" stroke="#ffffff" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="actual" name="Historical Expense" stroke="#ffffff" strokeWidth={2} dot={{ r: 4 }} />
                   <Line type="monotone" dataKey="predicted" name="ML Projected" stroke="#10b981" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 5, fill: '#10b981' }} />
                 </LineChart>
               </ResponsiveContainer>

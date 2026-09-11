@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import type React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Check, ArrowRight, Plus } from 'lucide-react';
 import { api } from '../api/client';
 import type { Category, Transaction } from '../types';
@@ -86,6 +87,11 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
     categoryIdRef.current = categoryId;
   }, [categoryId]);
 
+  const localCategoriesRef = useRef(localCategories);
+  useEffect(() => {
+    localCategoriesRef.current = localCategories;
+  }, [localCategories]);
+
   useEffect(() => {
     if (!description || description.trim().length < 2 || initialTransaction) {
       setAiSuggestion(null);
@@ -103,7 +109,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
         if (controller.signal.aborted) return;
 
         // Find matching category ID in available categories
-        const matched = localCategories.find(
+        const cats = localCategoriesRef.current;
+        const matched = cats.find(
           (c) =>
             c.name.toLowerCase().includes(res.predicted_category.toLowerCase()) ||
             res.predicted_category.toLowerCase().includes(c.name.toLowerCase())
@@ -133,7 +140,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [description, amount, localCategories, initialTransaction]);
+  }, [description, amount, initialTransaction]);
 
 
   if (!isOpen) return null;

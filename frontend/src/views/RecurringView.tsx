@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import {
   Repeat,
   Plus,
@@ -337,7 +338,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
                   <label className="block text-xs font-medium text-zinc-700 mb-1">Frequency</label>
                   <select
                     value={frequency}
-                    onChange={(e) => setFrequency(e.target.value as any)}
+                    onChange={(e) => setFrequency(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
                     aria-label="Recurring frequency"
                     className="w-full px-3 py-2 text-xs bg-white border border-zinc-300 rounded-lg"
                   >

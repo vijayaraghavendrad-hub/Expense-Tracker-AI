@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from typing import Dict, List
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import extract as sa_extract, func
 from ..models import Transaction
 
 
@@ -14,8 +14,8 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
     # Fetch monthly expense totals — use extract for GROUP BY (works on both SQLite and PostgreSQL)
     results = (
         db.query(
-            func.extract("year", Transaction.transaction_date).label("y"),
-            func.extract("month", Transaction.transaction_date).label("m"),
+            sa_extract("year", Transaction.transaction_date).label("y"),
+            sa_extract("month", Transaction.transaction_date).label("m"),
             func.sum(Transaction.amount).label("total_expense"),
         )
         .filter(Transaction.user_id == user_id, Transaction.type == "expense")
@@ -93,7 +93,7 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
 
     predictions_history = model.predict(X)
     residuals = y - predictions_history
-    std_residual = float(np.std(residuals)) if len(residuals) > 1 else float(y.mean() * 0.1)
+    std_residual = float(np.std(residuals))
 
     projected_points = []
     curr_m = last_month_str

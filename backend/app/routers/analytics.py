@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import extract as sa_extract, func
 from ..database import get_db
 from ..models import Transaction, Category, User
 from ..schemas import (
@@ -180,8 +180,8 @@ def get_monthly_trends(
     # Fetch distinct months sorted ascending — use extract for GROUP BY (works on both SQLite and PostgreSQL)
     inc_query = (
         db.query(
-            func.extract("year", Transaction.transaction_date).label("y"),
-            func.extract("month", Transaction.transaction_date).label("m"),
+            sa_extract("year", Transaction.transaction_date).label("y"),
+            sa_extract("month", Transaction.transaction_date).label("m"),
             func.sum(Transaction.amount),
         )
         .filter(Transaction.user_id == current_user.id, Transaction.type == "income")
@@ -192,8 +192,8 @@ def get_monthly_trends(
 
     exp_query = (
         db.query(
-            func.extract("year", Transaction.transaction_date).label("y"),
-            func.extract("month", Transaction.transaction_date).label("m"),
+            sa_extract("year", Transaction.transaction_date).label("y"),
+            sa_extract("month", Transaction.transaction_date).label("m"),
             func.sum(Transaction.amount),
         )
         .filter(Transaction.user_id == current_user.id, Transaction.type == "expense")

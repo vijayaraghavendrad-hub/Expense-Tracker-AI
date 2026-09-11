@@ -39,7 +39,7 @@ def get_transactions(
 
     if search and search.strip():
         escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
-        query = query.filter(Transaction.description.ilike(f"%{escaped}%"))
+        query = query.filter(Transaction.description.ilike(f"%{escaped}%", escape="\\"))
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
     if payment_method:
@@ -223,7 +223,7 @@ def export_transactions_csv(
 
     if search and search.strip():
         escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
-        query = query.filter(Transaction.description.ilike(f"%{escaped}%"))
+        query = query.filter(Transaction.description.ilike(f"%{escaped}%", escape="\\"))
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
     if payment_method:
@@ -273,10 +273,9 @@ def export_transactions_csv(
     csv_data = output.getvalue()
     today_str = date.today().isoformat()
     return Response(
-        content=csv_data,
-        media_type="text/csv",
+        content=csv_data.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f"attachment; filename=transactions_ledger_{today_str}.csv",
-            "Content-Type": "text/csv; charset=utf-8",
         },
     )

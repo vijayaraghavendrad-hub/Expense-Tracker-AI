@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -33,8 +34,8 @@ def advance_next_date(current_date: date, frequency: str) -> date:
         if month > 12:
             month = 1
             year += 1
-        # Handle month day overflow (e.g. Feb 30 -> Feb 28)
-        day = min(current_date.day, 28)
+        _, last_day = calendar.monthrange(year, month)
+        day = min(current_date.day, last_day)
         return date(year, month, day)
 
 

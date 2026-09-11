@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Download, Printer, FileSpreadsheet, FileText, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
 import type { AnalyticsSummary, CategorySpendItem, MonthlyTrendItem, User } from '../types';
@@ -35,6 +36,7 @@ export const ExportView: React.FC<ExportViewProps> = ({
 
   const handleDownloadCsv = async () => {
     setIsDownloading(true);
+    setError(null);
     try {
       const today = new Date();
       let start_date: string | undefined;

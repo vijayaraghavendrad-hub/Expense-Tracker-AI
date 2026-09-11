@@ -1,6 +1,6 @@
 import re
 import threading
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 # Lazy-load sklearn to avoid slow startup
@@ -183,18 +183,19 @@ class ExpenseClassifier:
 
     def train(self):
         _ensure_sklearn()
-        texts = [clean_text(item[0]) for item in self.training_data]
-        labels = [item[1] for item in self.training_data]
-        self.model = _pipeline_cls(
-            [
-                ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
-                ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
-            ]
-        )
-        self.model.fit(texts, labels)
-        self._is_trained = True
+        with self._lock:
+            texts = [clean_text(item[0]) for item in self.training_data]
+            labels = [item[1] for item in self.training_data]
+            self.model = _pipeline_cls(
+                [
+                    ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
+                    ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
+                ]
+            )
+            self.model.fit(texts, labels)
+            self._is_trained = True
 
-    def predict(self, description: str, amount: float = None) -> Dict:
+    def predict(self, description: str, amount: Optional[float] = None) -> Dict:
         if not description or not description.strip():
             return {
                 "predicted_category": "Other",
@@ -203,11 +204,11 @@ class ExpenseClassifier:
             }
 
         cleaned = clean_text(description)
-        if not self._is_trained:
-            self.train()
-
-        probabilities = self.model.predict_proba([cleaned])[0]
-        classes = self.model.classes_
+        with self._lock:
+            if not self._is_trained:
+                self.train()
+            probabilities = self.model.predict_proba([cleaned])[0]
+            classes = self.model.classes_
 
         prob_dict = {cat: float(prob) for cat, prob in zip(classes, probabilities)}
 
@@ -253,7 +254,7 @@ class ExpenseClassifier:
         with self._lock:
             for _ in range(3):
                 self.training_data.append((description, actual_category))
-            self.train()
+        self.train()
 
 
 # Global singleton instance

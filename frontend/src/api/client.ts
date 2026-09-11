@@ -89,14 +89,6 @@ export const api = {
     return data;
   },
 
-  demoLogin: async () => {
-    const data = await apiRequest<{ access_token: string; user: User }>('/auth/demo-login', {
-      method: 'POST',
-    });
-    authStorage.setToken(data.access_token);
-    return data;
-  },
-
   getProfile: () => apiRequest<User>('/auth/me'),
 
   updateProfile: (data: { name?: string; email?: string; currency?: string }) =>
@@ -111,7 +103,7 @@ export const api = {
   },
 
   // Categories
-  getCategories: () => apiRequest<Category[]>('/categories/'),
+  getCategories: (signal?: AbortSignal) => apiRequest<Category[]>('/categories/', { signal }),
 
   createCategory: (data: { name: string; type: 'expense' | 'income'; icon?: string; color?: string }) =>
     apiRequest<Category>('/categories/', {
@@ -137,10 +129,11 @@ export const api = {
     is_anomaly?: boolean;
     sort_by?: 'date' | 'amount';
     sort_dir?: 'asc' | 'desc';
+    signal?: AbortSignal;
   }) => {
     const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page.toString());
-    if (params.page_size) query.append('page_size', params.page_size.toString());
+    if (params.page !== undefined) query.append('page', params.page.toString());
+    if (params.page_size !== undefined) query.append('page_size', params.page_size.toString());
     if (params.search) query.append('search', params.search);
     if (params.category_id) query.append('category_id', params.category_id.toString());
     if (params.payment_method) query.append('payment_method', params.payment_method);
@@ -151,7 +144,7 @@ export const api = {
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_dir) query.append('sort_dir', params.sort_dir);
 
-    return apiRequest<TransactionListResponse>(`/transactions/?${query.toString()}`);
+    return apiRequest<TransactionListResponse>(`/transactions/?${query.toString()}`, { signal: params.signal });
   },
 
   createTransaction: (data: {
@@ -190,16 +183,6 @@ export const api = {
       method: 'DELETE',
     }),
 
-  getExportCsvUrl: (params?: { category_id?: number; type?: string; currency?: string; start_date?: string; end_date?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.category_id) query.append('category_id', params.category_id.toString());
-    if (params?.type) query.append('type', params.type);
-    if (params?.currency) query.append('currency', params.currency);
-    if (params?.start_date) query.append('start_date', params.start_date);
-    if (params?.end_date) query.append('end_date', params.end_date);
-    return `${API_BASE}/transactions/export/csv?${query.toString()}`;
-  },
-
   downloadTransactionsCsv: async (params?: { category_id?: number; type?: string; currency?: string; start_date?: string; end_date?: string }) => {
     const query = new URLSearchParams();
     if (params?.category_id) query.append('category_id', params.category_id.toString());
@@ -234,11 +217,11 @@ export const api = {
   },
 
   // Budgets
-  getBudgetsProgress: (month?: number, year?: number) => {
+  getBudgetsProgress: (month?: number, year?: number, signal?: AbortSignal) => {
     const query = new URLSearchParams();
     if (month) query.append('month', month.toString());
     if (year) query.append('year', year.toString());
-    return apiRequest<BudgetProgress[]>(`/budgets/progress?${query.toString()}`);
+    return apiRequest<BudgetProgress[]>(`/budgets/progress?${query.toString()}`, { signal });
   },
 
   createBudget: (data: { category_id: number; amount: number; month: number; year: number }) =>
@@ -253,7 +236,7 @@ export const api = {
     }),
 
   // Recurring
-  getRecurring: () => apiRequest<RecurringExpense[]>('/recurring/'),
+  getRecurring: (signal?: AbortSignal) => apiRequest<RecurringExpense[]>('/recurring/', { signal }),
 
   createRecurring: (data: {
     category_id?: number;
@@ -285,24 +268,24 @@ export const api = {
     }),
 
   // Analytics
-  getSummary: (period: string = 'month', start_date?: string, end_date?: string) => {
+  getSummary: (period: string = 'month', start_date?: string, end_date?: string, signal?: AbortSignal) => {
     const query = new URLSearchParams({ period });
     if (start_date) query.append('start_date', start_date);
     if (end_date) query.append('end_date', end_date);
-    return apiRequest<AnalyticsSummary>(`/analytics/summary?${query.toString()}`);
+    return apiRequest<AnalyticsSummary>(`/analytics/summary?${query.toString()}`, { signal });
   },
 
-  getMonthlyTrends: (months: number = 6) =>
-    apiRequest<MonthlyTrendItem[]>(`/analytics/monthly?months=${months}`),
+  getMonthlyTrends: (months: number = 6, signal?: AbortSignal) =>
+    apiRequest<MonthlyTrendItem[]>(`/analytics/monthly?months=${months}`, { signal }),
 
-  getTrajectory: (period: string = 'month') =>
-    apiRequest<MonthlyTrendItem[]>(`/analytics/trajectory?period=${encodeURIComponent(period)}`),
+  getTrajectory: (period: string = 'month', signal?: AbortSignal) =>
+    apiRequest<MonthlyTrendItem[]>(`/analytics/trajectory?period=${encodeURIComponent(period)}`, { signal }),
 
-  getCategoryBreakdown: (period: string = 'month') =>
-    apiRequest<CategorySpendItem[]>(`/analytics/categories?period=${period}`),
+  getCategoryBreakdown: (period: string = 'month', signal?: AbortSignal) =>
+    apiRequest<CategorySpendItem[]>(`/analytics/categories?period=${period}`, { signal }),
 
-  getDailyExpenses: (period: string = 'month') =>
-    apiRequest<DailyExpenseItem[]>(`/analytics/daily?period=${period}`),
+  getDailyExpenses: (period: string = 'month', signal?: AbortSignal) =>
+    apiRequest<DailyExpenseItem[]>(`/analytics/daily?period=${period}`, { signal }),
 
 
   // AI & ML
@@ -324,12 +307,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getInsights: (currency: string = 'USD') =>
-    apiRequest<{ insights: InsightItem[] }>(`/ai/insights?currency=${encodeURIComponent(currency)}`),
+  getInsights: (currency: string = 'USD', signal?: AbortSignal) =>
+    apiRequest<{ insights: InsightItem[] }>(`/ai/insights?currency=${encodeURIComponent(currency)}`, { signal }),
 
-  getAnomalies: () => apiRequest<AnomalyItem[]>('/ai/anomalies'),
+  getAnomalies: (signal?: AbortSignal) => apiRequest<AnomalyItem[]>('/ai/anomalies', { signal }),
 
-  getForecast: () => apiRequest<ForecastResponse>('/ai/forecast'),
+  getForecast: (signal?: AbortSignal) => apiRequest<ForecastResponse>('/ai/forecast', { signal }),
 
   // Seed / Demo Data Reset
   resetDemoData: () =>

@@ -91,9 +91,9 @@ def get_budgets(
     db: Session = Depends(get_db),
 ):
     query = db.query(Budget).filter(Budget.user_id == current_user.id)
-    if month:
+    if month is not None:
         query = query.filter(Budget.month == month)
-    if year:
+    if year is not None:
         query = query.filter(Budget.year == year)
     return query.all()
 

@@ -60,13 +60,12 @@ app.include_router(ai_router, prefix="/api")
 
 # System Lifecycle & Auto-Shutdown state
 last_heartbeat = time.time()
-auto_shutdown_enabled = os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1"
 
 
 def do_shutdown():
     time.sleep(0.5)
     print("Initiating clean shutdown of Smart Expense Tracker...")
-    sys.exit(0)
+    os._exit(0)
 
 
 @app.get("/api/health")
@@ -110,16 +109,17 @@ def auto_shutdown_watchdog():
     time.sleep(40)
     while True:
         time.sleep(4)
-        if auto_shutdown_enabled:
-            idle_seconds = time.time() - last_heartbeat
-            if idle_seconds > 12:
-                print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-                sys.exit(0)
+        idle_seconds = time.time() - last_heartbeat
+        if idle_seconds > 12:
+            print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
+            os._exit(0)
 
 
-if auto_shutdown_enabled:
-    watchdog_thread = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
-    watchdog_thread.start()
+def _start_watchdog():
+    t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
+    t.start()
+
+_start_watchdog()
 
 # Mount frontend/dist if it exists so app can run fully on a single port (8000)
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -134,7 +134,9 @@ if dist_dir.exists() and (dist_dir / "index.html").exists():
     def serve_frontend(full_path: str):
         if full_path.startswith("api/"):
             return JSONResponse(status_code=404, content={"error": "Not Found"})
-        target_file = dist_dir / full_path
+        target_file = (dist_dir / full_path).resolve()
+        if not target_file.is_relative_to(dist_dir.resolve()):
+            return JSONResponse(status_code=404, content={"error": "Not Found"})
         if full_path and target_file.exists() and not target_file.is_dir():
             return FileResponse(str(target_file))
         return FileResponse(str(dist_dir / "index.html"))

@@ -42,14 +42,25 @@ def categorize_expense(
 
     matched_cat = None
     pred_lower = predicted_cat_name.lower()
+    # Priority 1: exact match
     for cat in available_cats:
-        c_lower = cat.name.lower()
-        if c_lower == pred_lower or pred_lower in c_lower or c_lower in pred_lower:
+        if cat.name.lower() == pred_lower:
             matched_cat = cat
             break
-        if c_lower.split()[0] == pred_lower.split()[0]:
-            matched_cat = cat
-            break
+    # Priority 2: prediction starts with category name or vice versa
+    if not matched_cat:
+        for cat in available_cats:
+            c_lower = cat.name.lower()
+            if pred_lower.startswith(c_lower) or c_lower.startswith(pred_lower):
+                matched_cat = cat
+                break
+    # Priority 3: first word match
+    if not matched_cat:
+        pred_first = pred_lower.split()[0]
+        for cat in available_cats:
+            if cat.name.lower().split()[0] == pred_first:
+                matched_cat = cat
+                break
 
     category_id = matched_cat.id if matched_cat else None
 

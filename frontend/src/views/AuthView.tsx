@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { Sparkles, ArrowRight, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { api } from '../api/client';
 import type { User } from '../types';

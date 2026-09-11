@@ -152,16 +152,16 @@ export function App() {
     setIsDataLoading(true);
     try {
       const results = await Promise.allSettled([
-        api.getCategories(),
-        api.getSummary(period),
-        api.getTrajectory(period),
-        api.getCategoryBreakdown(period),
-        api.getDailyExpenses(period),
-        api.getInsights(currentCurrency),
-        api.getBudgetsProgress(),
-        api.getRecurring(),
-        api.getAnomalies(),
-        api.getForecast(),
+        api.getCategories(signal),
+        api.getSummary(period, undefined, undefined, signal),
+        api.getTrajectory(period, signal),
+        api.getCategoryBreakdown(period, signal),
+        api.getDailyExpenses(period, signal),
+        api.getInsights(currentCurrency, signal),
+        api.getBudgetsProgress(undefined, undefined, signal),
+        api.getRecurring(signal),
+        api.getAnomalies(signal),
+        api.getForecast(signal),
       ]);
 
       if (signal?.aborted) return;
@@ -210,6 +210,7 @@ export function App() {
         is_anomaly: onlyAnomalies ? true : undefined,
         sort_by: 'date',
         sort_dir: 'desc',
+        signal,
       });
 
       if (signal?.aborted) return;
@@ -241,6 +242,14 @@ export function App() {
   }, [user, loadTransactions]);
 
   const refreshControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (refreshControllerRef.current) {
+        refreshControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleRefreshAll = useCallback(() => {
     if (refreshControllerRef.current) {

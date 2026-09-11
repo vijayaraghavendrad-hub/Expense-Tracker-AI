@@ -1,4 +1,5 @@
-import React, { useRef, useCallback } from 'react';
+import type React from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -56,10 +57,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   currency = 'USD',
 }) => {
   const currencySymbol = getCurrencySymbol(currency);
-  const [isExporting, setIsExporting] = React.useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [csvError, setCsvError] = useState<string | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
@@ -75,6 +77,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
   const handleExportCsv = async () => {
     setIsExporting(true);
+    setCsvError(null);
     const today = new Date();
     const end_date = today.toISOString().split('T')[0];
     const start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
@@ -87,17 +90,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         end_date,
       });
     } catch {
-      try {
-        await api.downloadTransactionsCsv({
-          category_id: selectedCategory,
-          type: selectedType || undefined,
-          currency,
-          start_date,
-          end_date,
-        });
-      } catch {
-        // CSV download failed
-      }
+      setCsvError('Failed to export CSV. Please try again.');
     } finally {
       setIsExporting(false);
     }
@@ -105,6 +98,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
 
   return (
     <div className="space-y-4 pb-12">
+      {csvError && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center justify-between">
+          <span>{csvError}</span>
+          <button onClick={() => setCsvError(null)} className="text-rose-800 font-semibold underline">
+            Dismiss
+          </button>
+        </div>
+      )}
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-zinc-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Search */}

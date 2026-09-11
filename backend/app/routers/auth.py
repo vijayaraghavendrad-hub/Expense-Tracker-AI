@@ -54,13 +54,6 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
             detail="An account with this email already exists.",
         )
 
-    # Password policy: 6+ characters
-    if len(payload.password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 6 characters long.",
-        )
-
     try:
         user = User(
             name=payload.name,
@@ -151,14 +144,13 @@ def demo_login(db: Session = Depends(get_db)):
             db.flush()
             initialize_user_categories(user.id, db)
             seed_demo_data(user.id, db)
+            db.commit()
         except Exception:
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create demo account. Please try again.",
             )
-    else:
-        db.commit()
 
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     return Token(
