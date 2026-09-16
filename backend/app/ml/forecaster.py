@@ -125,8 +125,10 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
     for step in range(1, projection_horizon + 1):
         idx = np.array([[n - 1 + step]])
         pred = float(np.asarray(model.predict(idx)).ravel()[0])
-        # Smooth floor
-        pred = max(25.0, pred)
+        # Floor proportional to user's actual spending history
+        avg_expense = float(np.mean(expenses))
+        floor = max(1.0, avg_expense * 0.1)
+        pred = max(floor, pred)
 
         # Standard error scales with sqrt(step) for realistic trajectory bounds
         margin = max(std_residual * 1.645 * np.sqrt(step), pred * (0.06 + 0.03 * step))

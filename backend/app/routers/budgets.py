@@ -1,7 +1,7 @@
 from datetime import date
 import calendar
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from ..database import get_db
@@ -98,12 +98,19 @@ def get_budgets(
     return query.all()
 
 
-@router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=BudgetResponse)
 def create_budget(
     payload: BudgetCreate,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # Validate month and year
+    if payload.month < 1 or payload.month > 12:
+        raise HTTPException(status_code=400, detail="Month must be between 1 and 12.")
+    if payload.year < 2000 or payload.year > 2100:
+        raise HTTPException(status_code=400, detail="Year must be between 2000 and 2100.")
+
     # Verify category exists (include system categories)
     from sqlalchemy import or_
     cat = (
@@ -133,6 +140,7 @@ def create_budget(
         existing.amount = payload.amount
         db.commit()
         db.refresh(existing)
+        response.status_code = status.HTTP_200_OK
         return existing
 
     budget = Budget(
@@ -145,6 +153,7 @@ def create_budget(
     db.add(budget)
     db.commit()
     db.refresh(budget)
+    response.status_code = status.HTTP_201_CREATED
     return budget
 
 

@@ -31,7 +31,8 @@ except Exception as e:
     print(f"Warning: Could not create database tables on startup: {e}", file=sys.stderr)
 
 # System Lifecycle & Auto-Shutdown state
-last_heartbeat = time.time()
+_last_heartbeat_lock = threading.Lock()
+_last_heartbeat = time.time()
 
 
 def _terminate_process():
@@ -57,7 +58,8 @@ def auto_shutdown_watchdog():
     time.sleep(40)
     while True:
         time.sleep(4)
-        idle_seconds = time.time() - last_heartbeat
+        with _last_heartbeat_lock:
+            idle_seconds = time.time() - _last_heartbeat
         if idle_seconds > 12:
             print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
             _terminate_process()
@@ -114,9 +116,10 @@ def health_check():
 
 @app.post("/api/system/heartbeat")
 def heartbeat():
-    global last_heartbeat
-    last_heartbeat = time.time()
-    return {"status": "alive", "timestamp": last_heartbeat}
+    global _last_heartbeat
+    with _last_heartbeat_lock:
+        _last_heartbeat = time.time()
+    return {"status": "alive", "timestamp": _last_heartbeat}
 
 
 @app.post("/api/system/leave")

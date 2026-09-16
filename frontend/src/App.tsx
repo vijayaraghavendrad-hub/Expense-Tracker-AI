@@ -132,9 +132,10 @@ export function App() {
 
     const handleUnload = () => {
       try {
-        const beaconUrl = '/api/system/leave';
+        const beaconUrl = `${window.location.origin}/api/system/leave`;
         if (navigator.sendBeacon) {
-          navigator.sendBeacon(beaconUrl);
+          const blob = new Blob([], { type: 'application/json' });
+          navigator.sendBeacon(beaconUrl, blob);
         }
       } catch {}
     };

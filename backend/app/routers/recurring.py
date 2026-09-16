@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from ..database import get_db, DATABASE_URL
+from ..database import get_db, ACTIVE_DATABASE_URL
 from ..models import RecurringExpense, Transaction, Category, User
 from ..schemas import (
     RecurringExpenseCreate,
@@ -165,7 +165,7 @@ def process_due_recurring_expenses(
         )
     )
     # Row-level locking only supported by PostgreSQL/MySQL, not SQLite
-    if not DATABASE_URL.startswith("sqlite"):
+    if not ACTIVE_DATABASE_URL.startswith("sqlite"):
         query = query.with_for_update()
     due_items = query.all()
 

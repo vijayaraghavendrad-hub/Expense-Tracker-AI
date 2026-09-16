@@ -1,3 +1,4 @@
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -141,7 +142,7 @@ def demo_login(db: Session = Depends(get_db)):
             user = User(
                 name="Alex Morgan",
                 email=demo_email,
-                password_hash=get_password_hash("demopassword123"),
+                password_hash=get_password_hash(secrets.token_hex(16)),
             )
             db.add(user)
             db.flush()
@@ -169,6 +170,12 @@ def demo_login(db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/logout")
+def logout_user():
+    """Client-side logout. Server-side token invalidation requires a token blocklist."""
+    return {"message": "Logged out successfully."}
 
 
 @router.put("/me", response_model=UserResponse)

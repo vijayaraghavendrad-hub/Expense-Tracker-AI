@@ -138,9 +138,13 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  logout: () => {
-    authStorage.removeToken();
-    window.dispatchEvent(new Event('auth_state_changed'));
+  logout: async () => {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' }).catch(() => {});
+    } finally {
+      authStorage.removeToken();
+      window.dispatchEvent(new Event('auth_state_changed'));
+    }
   },
 
   // Categories
@@ -176,7 +180,7 @@ export const api = {
     if (params.page !== undefined) query.append('page', params.page.toString());
     if (params.page_size !== undefined) query.append('page_size', params.page_size.toString());
     if (params.search) query.append('search', params.search);
-    if (params.category_id) query.append('category_id', params.category_id.toString());
+    if (params.category_id !== undefined) query.append('category_id', params.category_id.toString());
     if (params.payment_method) query.append('payment_method', params.payment_method);
     if (params.type) query.append('type', params.type);
     if (params.start_date) query.append('start_date', params.start_date);
@@ -224,25 +228,27 @@ export const api = {
       method: 'DELETE',
     }),
 
-  downloadTransactionsCsv: async (params?: { category_id?: number; type?: string; currency?: string; start_date?: string; end_date?: string }) => {
+  downloadTransactionsCsv: async (params?: { category_id?: number; type?: string; currency?: string; start_date?: string; end_date?: string; is_anomaly?: boolean }) => {
     const query = new URLSearchParams();
-    if (params?.category_id) query.append('category_id', params.category_id.toString());
+    if (params?.category_id !== undefined) query.append('category_id', params.category_id.toString());
     if (params?.type) query.append('type', params.type);
     if (params?.currency) query.append('currency', params.currency);
     if (params?.start_date) query.append('start_date', params.start_date);
     if (params?.end_date) query.append('end_date', params.end_date);
+    if (params?.is_anomaly !== undefined) query.append('is_anomaly', params.is_anomaly.toString());
 
     const token = authStorage.getToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE}/transactions/export/csv?${query.toString()}`, {
+    const res = await fetchWithRetry(`${API_BASE}/transactions/export/csv?${query.toString()}`, {
       method: 'GET',
       headers,
-    });
+    }, 2);
 
     if (!res.ok) {
-      throw new Error(`Failed to download CSV: HTTP ${res.status}`);
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Failed to download CSV: HTTP ${res.status}`);
     }
 
     const blob = await res.blob();

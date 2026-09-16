@@ -22,6 +22,7 @@ import type {
   ForecastResponse,
 } from '../types';
 import { getCurrencySymbol } from '../utils/currency';
+import { sanitizeColor } from '../utils/sanitize';
 
 interface AnalyticsViewProps {
   summary: AnalyticsSummary | null;
@@ -158,7 +159,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             <p className="font-semibold text-zinc-400 mb-1">{label}</p>
                             {payload.map((entry, idx) => (
                               <p key={idx} style={{ color: entry.color }}>
-                                {entry.name}: {currencySymbol}{Number(entry.value).toLocaleString()}
+                                {entry.name}: {entry.value !== null && entry.value !== undefined ? `${currencySymbol}${Number(entry.value).toLocaleString()}` : 'N/A'}
                               </p>
                             ))}
                           </div>
@@ -241,7 +242,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {categorySpends.map((item) => (
                 <tr key={item.category_name} className="hover:bg-zinc-50/70 transition-colors">
                   <td className="py-3 px-4 font-medium text-zinc-900 flex items-center space-x-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sanitizeColor(item.color) }} />
                     <span>{item.category_name}</span>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-zinc-600">{item.transaction_count}</td>
@@ -263,7 +264,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         className="h-full rounded-full"
                         style={{
                           width: `${item.percentage}%`,
-                          backgroundColor: item.color || '#10b981',
+                          backgroundColor: sanitizeColor(item.color, '#10b981'),
                         }}
                       />
                     </div>

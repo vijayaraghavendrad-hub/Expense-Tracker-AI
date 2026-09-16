@@ -4,6 +4,7 @@ import { Plus, Target, AlertTriangle, Trash2, X } from 'lucide-react';
 import type { BudgetProgress, Category } from '../types';
 import { api } from '../api/client';
 import { getCurrencySymbol } from '../utils/currency';
+import { sanitizeColor } from '../utils/sanitize';
 
 interface BudgetsViewProps {
   budgetProgress: BudgetProgress[];
@@ -140,7 +141,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                   <div className="flex items-center space-x-2">
                     <span
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: item.category_color || '#71717a' }}
+                      style={{ backgroundColor: sanitizeColor(item.category_color) }}
                     />
                     <h4 className="text-sm font-semibold text-zinc-900">{item.category_name}</h4>
                   </div>

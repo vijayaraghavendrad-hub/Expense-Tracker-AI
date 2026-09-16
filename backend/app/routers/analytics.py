@@ -25,10 +25,12 @@ def _month_range(year: int, month: int):
 
 def get_period_dates(period: str, start_date: Optional[date] = None, end_date: Optional[date] = None):
     today = date.today()
-    if start_date and end_date:
-        return start_date, end_date
-
     p = (period or "month").lower()
+
+    if p == "custom":
+        if not start_date or not end_date:
+            raise ValueError("Custom period requires both start_date and end_date.")
+        return start_date, end_date
     if p == "week":
         start = today - timedelta(days=today.weekday())  # Monday of current week
         end = today

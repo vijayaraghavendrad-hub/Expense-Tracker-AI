@@ -231,6 +231,9 @@ class PurePythonTfidfClassifier:
         return {cat: sim / total_sim for cat, sim in cat_scores.items()}
 
 
+MAX_TRAINING_DATA_SIZE = 500
+
+
 class ExpenseClassifier:
     def __init__(self):
         self._lock = threading.Lock()
@@ -239,6 +242,13 @@ class ExpenseClassifier:
         self.fallback_model = None
         self.use_fallback = False
         self._is_trained = False
+        self._user_classifiers: Dict[int, 'ExpenseClassifier'] = {}
+
+    def get_user_classifier(self, user_id: int) -> 'ExpenseClassifier':
+        """Get or create a per-user classifier instance."""
+        if user_id not in self._user_classifiers:
+            self._user_classifiers[user_id] = ExpenseClassifier()
+        return self._user_classifiers[user_id]
 
     def _train_unsafe(self):
         """Train the model. Caller must hold self._lock."""
@@ -331,6 +341,8 @@ class ExpenseClassifier:
             return
         with self._lock:
             self.training_data.append((description, actual_category))
+            if len(self.training_data) > MAX_TRAINING_DATA_SIZE:
+                self.training_data = self.training_data[-MAX_TRAINING_DATA_SIZE:]
             self._train_unsafe()
 
 

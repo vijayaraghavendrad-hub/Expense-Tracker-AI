@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -26,8 +26,9 @@ def _get_secret_key() -> str:
                 if line.startswith("SECRET_KEY="):
                     return line.split("=", 1)[1].strip().strip("'\"")
     import sys
-    print("WARNING: SECRET_KEY not set. Using insecure fallback. Set SECRET_KEY in Render dashboard.", file=sys.stderr)
-    return "insecure-fallback-change-me-in-render-dashboard"
+    fallback_key = secrets.token_hex(32)
+    print("WARNING: SECRET_KEY not set. Generated random key for this session. Set SECRET_KEY in Render dashboard for persistent tokens.", file=sys.stderr)
+    return fallback_key
 
 
 SECRET_KEY = _get_secret_key()
@@ -59,10 +60,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def get_current_user(
     token_header: Optional[str] = Depends(oauth2_scheme),
-    token_query: Optional[str] = Query(None, alias="token"),
     db: Session = Depends(get_db),
 ) -> User:
-    token = token_header or token_query
+    token = token_header
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

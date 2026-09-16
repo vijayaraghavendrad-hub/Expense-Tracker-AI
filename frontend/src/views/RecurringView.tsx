@@ -36,7 +36,7 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
-  const [nextDate, setNextDate] = useState(new Date().toISOString().split('T')[0]);
+  const [nextDate, setNextDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processResult, setProcessResult] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);

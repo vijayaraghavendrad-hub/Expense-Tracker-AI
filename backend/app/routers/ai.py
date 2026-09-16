@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import User, Category, MLPrediction
+from ..models import User, Category, Transaction, MLPrediction
 from ..schemas import (
     CategorizeRequest,
     CategorizeResponse,
@@ -29,7 +29,8 @@ def categorize_expense(
     """
     FR8.1: Given free-text description, predicts expense category using TF-IDF + Logistic Regression.
     """
-    prediction = classifier.predict(payload.description, amount=payload.amount)
+    user_classifier = classifier.get_user_classifier(current_user.id)
+    prediction = user_classifier.predict(payload.description, amount=payload.amount)
     predicted_cat_name = prediction["predicted_category"]
 
     # Match with available categories in DB (user's or default)
@@ -91,6 +92,15 @@ def submit_ml_feedback(
     """
     FR8.2 & FR8.3: Logs user override/corrections and adapts classifier weights.
     """
+    # Verify transaction ownership if transaction_id is provided
+    if payload.transaction_id is not None:
+        tx = db.query(Transaction).filter(
+            Transaction.id == payload.transaction_id,
+            Transaction.user_id == current_user.id,
+        ).first()
+        if not tx:
+            raise HTTPException(status_code=404, detail="Transaction not found.")
+
     prediction_record = MLPrediction(
         user_id=current_user.id,
         transaction_id=payload.transaction_id,
@@ -103,8 +113,9 @@ def submit_ml_feedback(
     db.add(prediction_record)
     db.commit()
 
-    # Retrain classifier with user correction
-    classifier.add_feedback_and_retrain(payload.description, payload.actual_category)
+    # Retrain classifier with user correction (per-user model)
+    user_classifier = classifier.get_user_classifier(current_user.id)
+    user_classifier.add_feedback_and_retrain(payload.description, payload.actual_category)
 
     return {
         "message": f"Feedback recorded. Model retrained on '{payload.description}' -> '{payload.actual_category}'."

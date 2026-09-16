@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Download, Printer, FileSpreadsheet, FileText, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
 import type { AnalyticsSummary, CategorySpendItem, MonthlyTrendItem, User } from '../types';
@@ -64,11 +64,11 @@ export const ExportView: React.FC<ExportViewProps> = ({
     window.print();
   };
 
-  const todayStr = new Date().toLocaleDateString('en-US', {
+  const todayStr = useMemo(() => new Date().toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
-  });
+  }), []);
 
   return (
     <div className="space-y-6 pb-12">

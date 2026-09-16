@@ -192,4 +192,8 @@ def seed_demo_data(user_id: int, db: Session):
     ))
 
     db.add_all(all_objects)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise

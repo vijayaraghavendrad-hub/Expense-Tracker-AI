@@ -14,6 +14,7 @@ import {
 import type { Transaction, Category } from '../types';
 import { api } from '../api/client';
 import { getCurrencySymbol } from '../utils/currency';
+import { sanitizeColor } from '../utils/sanitize';
 
 interface TransactionsViewProps {
   transactions: Transaction[];
@@ -88,6 +89,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         currency,
         start_date,
         end_date,
+        is_anomaly: onlyAnomalies ? true : undefined,
       });
     } catch {
       setCsvError('Failed to export CSV. Please try again.');
@@ -212,8 +214,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium"
                         style={{
-                          backgroundColor: `${tx.category.color || '#71717a'}15`,
-                          color: tx.category.color || '#71717a',
+                          backgroundColor: `${sanitizeColor(tx.category.color)}15`,
+                          color: sanitizeColor(tx.category.color),
                         }}
                       >
                         {tx.category.name}

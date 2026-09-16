@@ -4,7 +4,7 @@ import math
 from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import desc, asc
+from sqlalchemy import desc, asc, func
 from sqlalchemy.orm import Session, joinedload
 from ..database import get_db
 from ..models import Transaction, Category, User
@@ -66,7 +66,24 @@ def get_transactions(
     # Secondary order by id
     query = query.order_by(order_col, Transaction.id.desc())
 
-    total = query.count()
+    # Count without joinedload to avoid inflated counts
+    count_query = db.query(func.count(Transaction.id)).filter(Transaction.user_id == current_user.id)
+    if search and search.strip():
+        escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
+        count_query = count_query.filter(Transaction.description.ilike(f"%{escaped}%", escape="\\"))
+    if category_id:
+        count_query = count_query.filter(Transaction.category_id == category_id)
+    if payment_method:
+        count_query = count_query.filter(Transaction.payment_method == payment_method)
+    if type:
+        count_query = count_query.filter(Transaction.type == type)
+    if start_date:
+        count_query = count_query.filter(Transaction.transaction_date >= start_date)
+    if end_date:
+        count_query = count_query.filter(Transaction.transaction_date <= end_date)
+    if is_anomaly is not None:
+        count_query = count_query.filter(Transaction.is_anomaly == is_anomaly)
+    total = count_query.scalar() or 0
     total_pages = math.ceil(total / page_size) if total > 0 else 1
     offset = (page - 1) * page_size
     items = query.offset(offset).limit(page_size).all()
@@ -150,7 +167,8 @@ def export_transactions_csv(
     if end_date:
         query = query.filter(Transaction.transaction_date <= end_date)
 
-    transactions = query.options(joinedload(Transaction.category)).order_by(Transaction.transaction_date.desc()).all()
+    # Limit CSV export to 10000 rows to prevent memory exhaustion
+    transactions = query.options(joinedload(Transaction.category)).order_by(Transaction.transaction_date.desc()).limit(10000).all()
     chosen_currency = currency or getattr(current_user, "currency", "USD") or "USD"
 
     output = io.StringIO()

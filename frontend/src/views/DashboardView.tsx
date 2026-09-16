@@ -28,6 +28,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { getCurrencySymbol } from '../utils/currency';
+import { sanitizeColor } from '../utils/sanitize';
 import type {
   AnalyticsSummary,
   MonthlyTrendItem,
@@ -505,8 +506,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         outerRadius={70}
                         paddingAngle={3}
                       >
-                        {categorySpends.map((entry) => (
-                          <Cell key={`cell-${entry.category_name}`} fill={entry.color || '#71717a'} />
+                        {categorySpends.map((entry, idx) => (
+                          <Cell key={`cell-${entry.category_id ?? idx}`} fill={sanitizeColor(entry.color)} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -543,7 +544,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="flex items-center space-x-2 truncate">
                         <span
                           className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ backgroundColor: cat.color }}
+                          style={{ backgroundColor: sanitizeColor(cat.color) }}
                         />
                         <span className="text-zinc-800 font-medium truncate">{cat.category_name}</span>
                         <span className="text-[10px] text-zinc-400">({cat.transaction_count} tx)</span>
@@ -559,7 +560,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         className="h-full rounded-full"
                         style={{
                           width: `${Math.min(100, cat.percentage)}%`,
-                          backgroundColor: cat.color || '#10b981',
+                          backgroundColor: sanitizeColor(cat.color, '#10b981'),
                         }}
                       />
                     </div>
@@ -606,8 +607,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div
                       className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
                       style={{
-                        backgroundColor: `${tx.category?.color || '#71717a'}18`,
-                        color: tx.category?.color || '#71717a',
+                        backgroundColor: `${sanitizeColor(tx.category?.color)}18`,
+                        color: sanitizeColor(tx.category?.color),
                       }}
                     >
                       {tx.type === 'income' ? (

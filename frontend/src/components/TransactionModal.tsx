@@ -77,6 +77,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAcceptedAiCat(null);
       setShowAddCategory(false);
       setNewCatName('');
+      setNewCatColor('#10b981');
     }
     setError(null);
   }, [initialTransaction, isOpen, defaultCurrency]);
@@ -130,6 +131,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       } catch (err) {
         if (!controller.signal.aborted) {
           console.error('AI categorization error', err);
+          setAiSuggestion(null);
         }
       } finally {
         setIsPredicting(false);
@@ -140,7 +142,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [description, amount, initialTransaction, type]);
+  }, [description, initialTransaction, type]);
 
 
   if (!isOpen) return null;
