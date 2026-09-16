@@ -174,26 +174,91 @@ def clean_text(text: str) -> str:
     return " ".join(text.split())
 
 
+import math
+from collections import Counter
+
+
+class PurePythonTfidfClassifier:
+    def __init__(self, seed_data: List[Tuple[str, str]]):
+        self.training_data = list(seed_data)
+        self.doc_freqs = Counter()
+        self.num_docs = len(self.training_data)
+        self.tokenized_docs = []
+
+        for text, cat in self.training_data:
+            tokens = clean_text(text).split()
+            bigrams = [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
+            all_tokens = tokens + bigrams
+            self.tokenized_docs.append((all_tokens, cat))
+            for tok in set(all_tokens):
+                self.doc_freqs[tok] += 1
+
+    def predict_proba_dict(self, description: str) -> Dict[str, float]:
+        tokens = clean_text(description).split()
+        bigrams = [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
+        query_tokens = tokens + bigrams
+        query_counts = Counter(query_tokens)
+
+        query_vec = {}
+        for tok, count in query_counts.items():
+            df = self.doc_freqs.get(tok, 0)
+            idf = math.log((self.num_docs + 1) / (df + 1)) + 1.0
+            query_vec[tok] = (1.0 + math.log(count)) * idf
+
+        query_norm = math.sqrt(sum(v**2 for v in query_vec.values())) or 1.0
+
+        cat_scores: Dict[str, float] = {}
+
+        for tokens_d, cat in self.tokenized_docs:
+            doc_counts = Counter(tokens_d)
+            doc_vec = {}
+            for tok, count in doc_counts.items():
+                df = self.doc_freqs.get(tok, 0)
+                idf = math.log((self.num_docs + 1) / (df + 1)) + 1.0
+                doc_vec[tok] = (1.0 + math.log(count)) * idf
+
+            doc_norm = math.sqrt(sum(v**2 for v in doc_vec.values())) or 1.0
+
+            dot = sum(query_vec[tok] * doc_vec[tok] for tok in query_vec if tok in doc_vec)
+            sim = dot / (query_norm * doc_norm)
+            if cat not in cat_scores or sim > cat_scores[cat]:
+                cat_scores[cat] = sim
+
+        if not cat_scores or sum(cat_scores.values()) == 0:
+            return {"Other": 1.0}
+
+        total_sim = sum(cat_scores.values())
+        return {cat: sim / total_sim for cat, sim in cat_scores.items()}
+
+
 class ExpenseClassifier:
     def __init__(self):
         self._lock = threading.Lock()
         self.training_data: List[Tuple[str, str]] = list(SEED_DATA)
         self.model = None
+        self.fallback_model = None
+        self.use_fallback = False
         self._is_trained = False
 
     def _train_unsafe(self):
         """Train the model. Caller must hold self._lock."""
-        _ensure_sklearn()
-        texts = [clean_text(item[0]) for item in self.training_data]
-        labels = [item[1] for item in self.training_data]
-        new_model = _pipeline_cls(
-            [
-                ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
-                ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
-            ]
-        )
-        new_model.fit(texts, labels)
-        self.model = new_model
+        try:
+            _ensure_sklearn()
+            texts = [clean_text(item[0]) for item in self.training_data]
+            labels = [item[1] for item in self.training_data]
+            new_model = _pipeline_cls(
+                [
+                    ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
+                    ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
+                ]
+            )
+            new_model.fit(texts, labels)
+            self.model = new_model
+            self.use_fallback = False
+        except Exception as e:
+            # Fallback when sklearn is blocked or unavailable
+            self.fallback_model = PurePythonTfidfClassifier(self.training_data)
+            self.use_fallback = True
         self._is_trained = True
 
     def train(self):
@@ -212,10 +277,18 @@ class ExpenseClassifier:
         with self._lock:
             if not self._is_trained:
                 self._train_unsafe()
-            probabilities = self.model.predict_proba([cleaned])[0]
-            classes = self.model.classes_
 
-        prob_dict = {cat: float(prob) for cat, prob in zip(classes, probabilities)}
+            if self.use_fallback and self.fallback_model:
+                prob_dict = self.fallback_model.predict_proba_dict(cleaned)
+            else:
+                try:
+                    probabilities = self.model.predict_proba([cleaned])[0]
+                    classes = self.model.classes_
+                    prob_dict = {cat: float(prob) for cat, prob in zip(classes, probabilities)}
+                except Exception:
+                    self.fallback_model = PurePythonTfidfClassifier(self.training_data)
+                    self.use_fallback = True
+                    prob_dict = self.fallback_model.predict_proba_dict(cleaned)
 
         # Intelligent amount contextual adjustment
         if amount is not None and amount > 0:

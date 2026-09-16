@@ -19,24 +19,38 @@ if env_file.exists():
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./expense_tracker.db")
 
-engine_kwargs: dict = {}
-if DATABASE_URL.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
-else:
-    # Render PostgreSQL (or any managed PostgreSQL):
-    engine_kwargs["pool_pre_ping"] = True
-    engine_kwargs["pool_recycle"] = 300
-    engine_kwargs["pool_size"] = 3
-    engine_kwargs["max_overflow"] = 2
-    engine_kwargs["pool_timeout"] = 10
-    engine_kwargs["connect_args"] = {
-        "connect_timeout": 10,
-        "options": "-c search_path=public",
-    }
+def create_working_engine(url: str):
+    kwargs: dict = {}
+    if url.startswith("sqlite"):
+        kwargs["connect_args"] = {"check_same_thread": False}
+    else:
+        # PostgreSQL configurations
+        kwargs["pool_pre_ping"] = True
+        kwargs["pool_recycle"] = 300
+        kwargs["pool_size"] = 3
+        kwargs["max_overflow"] = 2
+        kwargs["pool_timeout"] = 5
+        kwargs["connect_args"] = {
+            "connect_timeout": 5,
+            "options": "-c search_path=public",
+        }
 
-engine = create_engine(DATABASE_URL, **engine_kwargs)
+    eng = create_engine(url, **kwargs)
+    try:
+        with eng.connect() as conn:
+            pass
+        return eng, url
+    except Exception as err:
+        if not url.startswith("sqlite"):
+            print(f"Warning: Primary database connection failed ({err}). Falling back to local SQLite database.")
+            sqlite_url = "sqlite:///./expense_tracker.db"
+            eng = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+            return eng, sqlite_url
+        raise
 
-if DATABASE_URL.startswith("sqlite"):
+engine, ACTIVE_DATABASE_URL = create_working_engine(DATABASE_URL)
+
+if ACTIVE_DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()

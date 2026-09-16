@@ -79,7 +79,6 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
 
     # Recency-weighted regression
     import numpy as np
-    from sklearn.linear_model import Ridge
     n = len(expenses)
     X = np.arange(n).reshape(-1, 1)
     y = np.array(expenses)
@@ -87,11 +86,33 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
     # Linearly increasing sample weights from 0.5 to 1.0
     sample_weights = np.linspace(0.5, 1.0, n)
 
-    # Ridge regularizer prevents wild steep extrapolation
-    model = Ridge(alpha=1.0)
-    model.fit(X, y, sample_weight=sample_weights)
+    try:
+        from sklearn.linear_model import Ridge
+        model = Ridge(alpha=1.0)
+        model.fit(X, y, sample_weight=sample_weights)
+        predictions_history = model.predict(X)
+    except Exception:
+        # Fallback to pure numpy Ridge regression if sklearn fails/is blocked
+        X_b = np.column_stack([np.ones(n), X.ravel()])
+        w_vec = sample_weights
+        w_X_b = X_b * w_vec[:, None]
+        reg_matrix = np.eye(2) * 1.0
+        reg_matrix[0, 0] = 0.0
+        try:
+            params = np.linalg.solve(X_b.T @ w_X_b + reg_matrix, X_b.T @ (w_vec * y))
+        except Exception:
+            params = np.linalg.lstsq(X_b.T @ w_X_b + reg_matrix, X_b.T @ (w_vec * y), rcond=None)[0]
 
-    predictions_history = model.predict(X)
+        class _NumpyRidgeModel:
+            def __init__(self, p):
+                self.p = p
+            def predict(self, X_in):
+                X_b_in = np.column_stack([np.ones(len(X_in)), X_in.ravel()])
+                return (X_b_in @ self.p).ravel()
+
+        model = _NumpyRidgeModel(params)
+        predictions_history = model.predict(X)
+
     residuals = y - predictions_history
     std_residual = float(np.std(residuals))
 
@@ -103,7 +124,7 @@ def calculate_expense_forecast(user_id: int, db: Session, projection_horizon: in
 
     for step in range(1, projection_horizon + 1):
         idx = np.array([[n - 1 + step]])
-        pred = float(model.predict(idx)[0])
+        pred = float(np.asarray(model.predict(idx)).ravel()[0])
         # Smooth floor
         pred = max(25.0, pred)
 
