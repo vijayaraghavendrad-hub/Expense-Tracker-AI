@@ -24,7 +24,7 @@ if not exist "%SCRIPT_DIR%frontend\dist\index.html" (
 REM ── Start Backend (single unified server on port 8000) ────────
 echo [2/3] Starting Smart Expense Tracker on http://localhost:8000 ...
 set ENABLE_AUTO_SHUTDOWN=1
-start "Smart Expense Tracker" /MIN cmd /c "cd /d "%SCRIPT_DIR%backend" && set ENABLE_AUTO_SHUTDOWN=1 && "%USERPROFILE%\.local\bin\uv.exe" run uvicorn app.main:app --host 127.0.0.1 --port 8000"
+start "Smart Expense Tracker" /MIN cmd /c "cd /d "%SCRIPT_DIR%backend" && set ENABLE_AUTO_SHUTDOWN=1 && "%SCRIPT_DIR%backend\.venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 
 REM ── Wait for backend to be ready ─────────────────────────────
 echo [3/3] Waiting for server to be ready...
