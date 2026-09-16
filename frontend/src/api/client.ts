@@ -15,11 +15,12 @@ import type {
   DailyExpenseItem,
 } from '../types';
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  (typeof window !== 'undefined' && window.location.port === '5173'
-    ? 'http://localhost:8000/api'
-    : '/api');
+// In production (Vercel), use the env var set in Vercel dashboard.
+// In dev, use a relative /api path — the Vite proxy rewrites it to localhost:8000.
+// This also works when the frontend is served directly from the FastAPI backend (port 8000).
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '') + '/api'
+  : '/api';
 
 const TOKEN_KEY = 'smart_expense_jwt';
 
