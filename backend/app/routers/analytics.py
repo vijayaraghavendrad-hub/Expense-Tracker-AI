@@ -307,8 +307,8 @@ def get_income_expense_trajectory(
         # Monthly cash flow trajectory for year/all
         inc_query = (
             db.query(
-                func.extract("year", Transaction.transaction_date).label("y"),
-                func.extract("month", Transaction.transaction_date).label("m"),
+                sa_extract("year", Transaction.transaction_date).label("y"),
+                sa_extract("month", Transaction.transaction_date).label("m"),
                 func.sum(Transaction.amount),
             )
             .filter(
@@ -324,8 +324,8 @@ def get_income_expense_trajectory(
 
         exp_query = (
             db.query(
-                func.extract("year", Transaction.transaction_date).label("y"),
-                func.extract("month", Transaction.transaction_date).label("m"),
+                sa_extract("year", Transaction.transaction_date).label("y"),
+                sa_extract("month", Transaction.transaction_date).label("m"),
                 func.sum(Transaction.amount),
             )
             .filter(

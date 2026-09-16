@@ -45,8 +45,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Mount API Routers
@@ -65,7 +65,8 @@ last_heartbeat = time.time()
 def do_shutdown():
     time.sleep(0.5)
     print("Initiating clean shutdown of Smart Expense Tracker...")
-    os._exit(0)
+    import signal
+    os.kill(os.getpid(), signal.SIGINT)
 
 
 @app.get("/api/health")
@@ -112,7 +113,8 @@ def auto_shutdown_watchdog():
         idle_seconds = time.time() - last_heartbeat
         if idle_seconds > 12:
             print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-            os._exit(0)
+            import signal
+            os.kill(os.getpid(), signal.SIGINT)
 
 
 def _start_watchdog():
@@ -120,7 +122,9 @@ def _start_watchdog():
         t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
         t.start()
 
-_start_watchdog()
+@app.on_event("startup")
+def startup_event():
+    _start_watchdog()
 
 # Mount frontend/dist if it exists so app can run fully on a single port (8000)
 project_root = Path(__file__).resolve().parent.parent.parent

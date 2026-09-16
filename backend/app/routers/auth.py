@@ -151,6 +151,9 @@ def demo_login(db: Session = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create demo account. Please try again.",
             )
+    else:
+        seed_demo_data(user.id, db)
+        db.commit()
 
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
     return Token(

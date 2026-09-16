@@ -163,6 +163,7 @@ def process_due_recurring_expenses(
             RecurringExpense.is_active == True,
             RecurringExpense.next_date <= today,
         )
+        .with_for_update()
         .all()
     )
 

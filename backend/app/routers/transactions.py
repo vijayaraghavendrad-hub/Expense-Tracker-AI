@@ -5,7 +5,7 @@ from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import desc, asc
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from ..database import get_db
 from ..models import Transaction, Category, User
 from ..schemas import (
@@ -35,7 +35,7 @@ def get_transactions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
+    query = db.query(Transaction).filter(Transaction.user_id == current_user.id).options(joinedload(Transaction.category))
 
     if search and search.strip():
         escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
@@ -122,6 +122,79 @@ def create_transaction(
     return tx
 
 
+@router.get("/export/csv")
+def export_transactions_csv(
+    search: Optional[str] = None,
+    category_id: Optional[int] = None,
+    payment_method: Optional[str] = None,
+    type: Optional[str] = None,
+    currency: Optional[str] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
+
+    if search and search.strip():
+        escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
+        query = query.filter(Transaction.description.ilike(f"%{escaped}%", escape="\\"))
+    if category_id:
+        query = query.filter(Transaction.category_id == category_id)
+    if payment_method:
+        query = query.filter(Transaction.payment_method == payment_method)
+    if type:
+        query = query.filter(Transaction.type == type)
+    if start_date:
+        query = query.filter(Transaction.transaction_date >= start_date)
+    if end_date:
+        query = query.filter(Transaction.transaction_date <= end_date)
+
+    transactions = query.options(joinedload(Transaction.category)).order_by(Transaction.transaction_date.desc()).all()
+    chosen_currency = currency or getattr(current_user, "currency", "USD") or "USD"
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "ID",
+            "Date",
+            "Type",
+            "Category",
+            "Description",
+            f"Amount ({chosen_currency})",
+            "Currency",
+            "Payment Method",
+        ]
+    )
+
+    for tx in transactions:
+        cat_name = tx.category.name if tx.category else "Uncategorized"
+        tx_currency = tx.currency or chosen_currency
+        writer.writerow(
+            [
+                tx.id,
+                tx.transaction_date.isoformat(),
+                tx.type,
+                cat_name,
+                tx.description,
+                f"{tx.amount:.2f}",
+                tx_currency,
+                tx.payment_method or "Other",
+            ]
+        )
+
+    csv_data = output.getvalue()
+    today_str = date.today().isoformat()
+    return Response(
+        content=csv_data.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename=transactions_ledger_{today_str}.csv",
+        },
+    )
+
+
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 def get_transaction(
     transaction_id: int,
@@ -205,77 +278,3 @@ def delete_transaction(
     db.delete(tx)
     db.commit()
     return {"message": "Transaction deleted successfully"}
-
-
-@router.get("/export/csv")
-def export_transactions_csv(
-    search: Optional[str] = None,
-    category_id: Optional[int] = None,
-    payment_method: Optional[str] = None,
-    type: Optional[str] = None,
-    currency: Optional[str] = None,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    query = db.query(Transaction).filter(Transaction.user_id == current_user.id)
-
-    if search and search.strip():
-        escaped = search.strip().replace("%", "\\%").replace("_", "\\_")
-        query = query.filter(Transaction.description.ilike(f"%{escaped}%", escape="\\"))
-    if category_id:
-        query = query.filter(Transaction.category_id == category_id)
-    if payment_method:
-        query = query.filter(Transaction.payment_method == payment_method)
-    if type:
-        query = query.filter(Transaction.type == type)
-    if start_date:
-        query = query.filter(Transaction.transaction_date >= start_date)
-    if end_date:
-        query = query.filter(Transaction.transaction_date <= end_date)
-
-    from sqlalchemy.orm import joinedload
-    transactions = query.options(joinedload(Transaction.category)).order_by(Transaction.transaction_date.desc()).all()
-    chosen_currency = currency or getattr(current_user, "currency", "USD") or "USD"
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(
-        [
-            "ID",
-            "Date",
-            "Type",
-            "Category",
-            "Description",
-            f"Amount ({chosen_currency})",
-            "Currency",
-            "Payment Method",
-        ]
-    )
-
-    for tx in transactions:
-        cat_name = tx.category.name if tx.category else "Uncategorized"
-        tx_currency = tx.currency or chosen_currency
-        writer.writerow(
-            [
-                tx.id,
-                tx.transaction_date.isoformat(),
-                tx.type,
-                cat_name,
-                tx.description,
-                f"{tx.amount:.2f}",
-                tx_currency,
-                tx.payment_method or "Other",
-            ]
-        )
-
-    csv_data = output.getvalue()
-    today_str = date.today().isoformat()
-    return Response(
-        content=csv_data.encode("utf-8"),
-        media_type="text/csv; charset=utf-8",
-        headers={
-            "Content-Disposition": f"attachment; filename=transactions_ledger_{today_str}.csv",
-        },
-    )

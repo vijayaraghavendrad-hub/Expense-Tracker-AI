@@ -251,7 +251,7 @@ export const BudgetsView: React.FC<BudgetsViewProps> = ({
                 </label>
                 <input
                   type="number"
-                  step="1"
+                  step="0.01"
                   min="1"
                   required
                   value={amount}

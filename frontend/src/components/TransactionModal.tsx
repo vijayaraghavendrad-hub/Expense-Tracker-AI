@@ -492,6 +492,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 <option value="UPI">UPI</option>
                 <option value="Bank Transfer">Bank Transfer</option>
                 <option value="Cash">Cash</option>
+                <option value="Auto-Debit">Auto-Debit</option>
                 <option value="Other">Other</option>
               </select>
             </div>

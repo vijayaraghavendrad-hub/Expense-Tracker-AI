@@ -186,13 +186,14 @@ class ExpenseClassifier:
         with self._lock:
             texts = [clean_text(item[0]) for item in self.training_data]
             labels = [item[1] for item in self.training_data]
-            self.model = _pipeline_cls(
+            new_model = _pipeline_cls(
                 [
                     ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
                     ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
                 ]
             )
-            self.model.fit(texts, labels)
+            new_model.fit(texts, labels)
+            self.model = new_model
             self._is_trained = True
 
     def predict(self, description: str, amount: Optional[float] = None) -> Dict:
@@ -254,7 +255,7 @@ class ExpenseClassifier:
         with self._lock:
             for _ in range(3):
                 self.training_data.append((description, actual_category))
-        self.train()
+            self.train()
 
 
 # Global singleton instance
