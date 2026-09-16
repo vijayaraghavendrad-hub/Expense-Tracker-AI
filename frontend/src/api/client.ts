@@ -22,6 +22,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, '') + '/api'
   : '/api';
 
+
 const TOKEN_KEY = 'smart_expense_jwt';
 
 export const authStorage = {
@@ -29,6 +30,40 @@ export const authStorage = {
   setToken: (token: string) => localStorage.setItem(TOKEN_KEY, token),
   removeToken: () => localStorage.removeItem(TOKEN_KEY),
 };
+
+/** Sleep helper */
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Fetch with automatic retry on 502/503 (Render free-tier cold starts).
+ * Retries up to 4 times with exponential backoff: 3s → 6s → 12s → 20s.
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 4
+): Promise<Response> {
+  const delays = [3000, 6000, 12000, 20000];
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      // Retry on gateway errors (Render cold start / deploy in progress)
+      if ((response.status === 502 || response.status === 503) && attempt < retries) {
+        await sleep(delays[attempt]);
+        continue;
+      }
+      return response;
+    } catch (networkErr) {
+      if (attempt < retries) {
+        await sleep(delays[attempt]);
+        continue;
+      }
+      throw networkErr;
+    }
+  }
+  // Unreachable but satisfies TypeScript
+  throw new Error('Max retries exceeded');
+}
 
 async function apiRequest<T>(
   endpoint: string,
@@ -49,7 +84,7 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetchWithRetry(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
     signal: options.signal,
@@ -63,12 +98,17 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const message = errorData.detail || `Request failed with status ${response.status}`;
+    const message =
+      errorData.detail ||
+      (response.status === 502 || response.status === 503
+        ? 'Server is starting up. Please wait a moment and try again.'
+        : `Request failed with status ${response.status}`);
     throw new Error(message);
   }
 
   return response.json();
 }
+
 
 export const api = {
   // Auth
