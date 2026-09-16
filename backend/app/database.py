@@ -23,22 +23,15 @@ engine_kwargs: dict = {}
 if DATABASE_URL.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    # Supabase Transaction-Mode Pooler (port 6543):
-    # - Supports many concurrent clients (no session-mode 15-client cap)
-    # - Does NOT support prepared statements → use NullPool or small pool
-    # - Keep pool small: Supabase free tier allows ~60 server connections total
-    engine_kwargs["pool_pre_ping"] = True      # detect stale connections
-    engine_kwargs["pool_recycle"] = 300        # recycle every 5 min
-    engine_kwargs["pool_size"] = 3             # keep only 3 persistent conns
-    engine_kwargs["max_overflow"] = 2          # allow 2 burst connections
-    engine_kwargs["pool_timeout"] = 10         # fail fast if no conn available
+    # Render PostgreSQL (or any managed PostgreSQL):
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 300
+    engine_kwargs["pool_size"] = 3
+    engine_kwargs["max_overflow"] = 2
+    engine_kwargs["pool_timeout"] = 10
     engine_kwargs["connect_args"] = {
         "connect_timeout": 10,
         "options": "-c search_path=public",
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
     }
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
