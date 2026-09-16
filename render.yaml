@@ -1,15 +1,13 @@
 services:
   - type: web
     name: smart-expense-tracker-api
-    runtime: python
+    env: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: smart-expense-db
-          property: connectionString
+        sync: false   # Set this manually in Render dashboard → Environment → from your Supabase connection string
       - key: SECRET_KEY
         generateValue: true
       - key: CORS_ORIGINS
@@ -18,9 +16,3 @@ services:
         value: "0"
       - key: PYTHON_VERSION
         value: "3.11"
-
-databases:
-  - name: smart-expense-db
-    plan: free
-    databaseName: smart_expense_tracker
-    user: smart_app
