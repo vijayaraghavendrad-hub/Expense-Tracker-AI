@@ -2,7 +2,9 @@ import os
 import sys
 import time
 import threading
+import signal
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -28,10 +30,56 @@ try:
 except Exception as e:
     print(f"Warning: Could not create database tables on startup: {e}", file=sys.stderr)
 
+# System Lifecycle & Auto-Shutdown state
+last_heartbeat = time.time()
+
+
+def _terminate_process():
+    """Send SIGINT on POSIX, use ctypes on Windows."""
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.kernel32.TerminateProcess(
+            ctypes.windll.kernel32.GetCurrentProcess(), 0
+        )
+    else:
+        os.kill(os.getpid(), signal.SIGINT)
+
+
+def do_shutdown():
+    time.sleep(0.5)
+    print("Initiating clean shutdown of Smart Expense Tracker...")
+    _terminate_process()
+
+
+# Watchdog thread for auto-shutdown when browser window is closed
+def auto_shutdown_watchdog():
+    # Allow 40 seconds initial window for browser to open and load
+    time.sleep(40)
+    while True:
+        time.sleep(4)
+        idle_seconds = time.time() - last_heartbeat
+        if idle_seconds > 12:
+            print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
+            _terminate_process()
+
+
+def _start_watchdog():
+    if os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1":
+        t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
+        t.start()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _start_watchdog()
+    yield
+
+
 app = FastAPI(
     title="Smart Expense Tracker API",
     description="AI-Powered Personal Finance Management System API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS configuration — restrict in production
@@ -57,16 +105,6 @@ app.include_router(budgets_router, prefix="/api")
 app.include_router(recurring_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
-
-# System Lifecycle & Auto-Shutdown state
-last_heartbeat = time.time()
-
-
-def do_shutdown():
-    time.sleep(0.5)
-    print("Initiating clean shutdown of Smart Expense Tracker...")
-    import signal
-    os.kill(os.getpid(), signal.SIGINT)
 
 
 @app.get("/api/health")
@@ -103,28 +141,6 @@ def reload_sample_data(
     seed_demo_data(current_user.id, db)
     return {"message": "Demo data successfully seeded with 6 months of historical transactions and analytics."}
 
-
-# Watchdog thread for auto-shutdown when browser window is closed
-def auto_shutdown_watchdog():
-    # Allow 40 seconds initial window for browser to open and load
-    time.sleep(40)
-    while True:
-        time.sleep(4)
-        idle_seconds = time.time() - last_heartbeat
-        if idle_seconds > 12:
-            print(f"No active browser tabs for {int(idle_seconds)}s. Auto-stopping server.")
-            import signal
-            os.kill(os.getpid(), signal.SIGINT)
-
-
-def _start_watchdog():
-    if os.getenv("ENABLE_AUTO_SHUTDOWN", "0") == "1":
-        t = threading.Thread(target=auto_shutdown_watchdog, daemon=True)
-        t.start()
-
-@app.on_event("startup")
-def startup_event():
-    _start_watchdog()
 
 # Mount frontend/dist if it exists so app can run fully on a single port (8000)
 project_root = Path(__file__).resolve().parent.parent.parent

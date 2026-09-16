@@ -225,38 +225,36 @@ export function App() {
     }
   }, [user, page, search, selectedCategory, selectedType, onlyAnomalies]);
 
-  useEffect(() => {
-    if (user) {
-      const controller = new AbortController();
-      loadCoreData(controller.signal);
-      return () => controller.abort();
-    }
-  }, [user, loadCoreData]);
+  // Unified controller for both core data and transactions to prevent race conditions
+  const mainControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (user) {
+      if (mainControllerRef.current) {
+        mainControllerRef.current.abort();
+      }
       const controller = new AbortController();
+      mainControllerRef.current = controller;
+      loadCoreData(controller.signal);
       loadTransactions(controller.signal);
       return () => controller.abort();
     }
-  }, [user, loadTransactions]);
-
-  const refreshControllerRef = useRef<AbortController | null>(null);
+  }, [user, loadCoreData, loadTransactions]);
 
   useEffect(() => {
     return () => {
-      if (refreshControllerRef.current) {
-        refreshControllerRef.current.abort();
+      if (mainControllerRef.current) {
+        mainControllerRef.current.abort();
       }
     };
   }, []);
 
   const handleRefreshAll = useCallback(() => {
-    if (refreshControllerRef.current) {
-      refreshControllerRef.current.abort();
+    if (mainControllerRef.current) {
+      mainControllerRef.current.abort();
     }
     const controller = new AbortController();
-    refreshControllerRef.current = controller;
+    mainControllerRef.current = controller;
     loadCoreData(controller.signal);
     loadTransactions(controller.signal);
   }, [loadCoreData, loadTransactions]);

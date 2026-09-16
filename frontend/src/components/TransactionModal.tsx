@@ -93,7 +93,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }, [localCategories]);
 
   useEffect(() => {
-    if (!description || description.trim().length < 2 || initialTransaction) {
+    if (!description || description.trim().length < 2 || initialTransaction || type !== 'expense') {
       setAiSuggestion(null);
       return;
     }
@@ -140,7 +140,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [description, amount, initialTransaction]);
+  }, [description, amount, initialTransaction, type]);
 
 
   if (!isOpen) return null;

@@ -266,7 +266,7 @@ export const api = {
   },
 
   createBudget: (data: { category_id: number; amount: number; month: number; year: number }) =>
-    apiRequest<BudgetProgress>('/budgets/', {
+    apiRequest<{ id: number; user_id: number; category_id: number; amount: number; month: number; year: number; category?: Category; created_at: string }>('/budgets/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

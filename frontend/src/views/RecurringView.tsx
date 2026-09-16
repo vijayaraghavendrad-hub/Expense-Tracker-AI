@@ -116,8 +116,8 @@ export const RecurringView: React.FC<RecurringViewProps> = ({
     .filter((r) => r.is_active)
     .reduce((acc, r) => {
       if (r.frequency === 'yearly') return acc + r.amount / 12;
-      if (r.frequency === 'weekly') return acc + r.amount * 4.33;
-      if (r.frequency === 'daily') return acc + r.amount * 30;
+      if (r.frequency === 'weekly') return acc + r.amount * (52 / 12);
+      if (r.frequency === 'daily') return acc + r.amount * (365 / 12);
       return acc + r.amount;
     }, 0);
 

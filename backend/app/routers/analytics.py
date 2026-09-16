@@ -486,6 +486,34 @@ def get_category_breakdown(
         .all()
     )
 
+    # Include uncategorized transactions (where category_id is NULL)
+    uncategorized = (
+        db.query(
+            func.sum(Transaction.amount).label("total_amount"),
+            func.count(Transaction.id).label("tx_count"),
+            func.max(Transaction.amount).label("max_amount"),
+        )
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.type == "expense",
+            Transaction.category_id.is_(None),
+            Transaction.transaction_date >= start,
+            Transaction.transaction_date <= end,
+        )
+        .one()
+    )
+    if uncategorized[0] is not None and uncategorized[0] > 0:
+        query_results = list(query_results)
+        query_results.append((
+            None,
+            "Uncategorized",
+            "#71717a",
+            "tag",
+            uncategorized[0],
+            uncategorized[1],
+            uncategorized[2],
+        ))
+
     grand_total = sum(float(r[4]) for r in query_results) or 1.0
 
     items: List[CategorySpendItem] = []

@@ -54,13 +54,7 @@ export const ExportView: React.FC<ExportViewProps> = ({
       setDownloadSuccess(true);
       successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
     } catch {
-      try {
-        await api.downloadTransactionsCsv({ currency });
-        setDownloadSuccess(true);
-        successTimerRef.current = setTimeout(() => setDownloadSuccess(false), 4000);
-      } catch {
-        setError('Failed to download CSV. Please try again.');
-      }
+      setError('Failed to download CSV. Please try again.');
     } finally {
       setIsDownloading(false);
     }

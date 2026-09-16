@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from ..database import get_db
+from ..database import get_db, DATABASE_URL
 from ..models import RecurringExpense, Transaction, Category, User
 from ..schemas import (
     RecurringExpenseCreate,
@@ -156,16 +156,18 @@ def process_due_recurring_expenses(
     generates corresponding transaction entries, and advances next_date.
     """
     today = date.today()
-    due_items = (
+    query = (
         db.query(RecurringExpense)
         .filter(
             RecurringExpense.user_id == current_user.id,
             RecurringExpense.is_active == True,
             RecurringExpense.next_date <= today,
         )
-        .with_for_update()
-        .all()
     )
+    # Row-level locking only supported by PostgreSQL/MySQL, not SQLite
+    if not DATABASE_URL.startswith("sqlite"):
+        query = query.with_for_update()
+    due_items = query.all()
 
     created_count = 0
     for item in due_items:

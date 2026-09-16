@@ -15,6 +15,16 @@ def seed_demo_data(user_id: int, db: Session):
 
     today = date.today()
 
+    # Determine user's currency preference (default to USD)
+    user_currency = "USD"
+    try:
+        from .models import User as UserModel
+        user_obj = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if user_obj and user_obj.currency:
+            user_currency = user_obj.currency
+    except Exception:
+        pass
+
     # Clear existing data for fresh seed
     db.query(Transaction).filter(Transaction.user_id == user_id).delete()
     db.query(Budget).filter(Budget.user_id == user_id).delete()
@@ -101,6 +111,7 @@ def seed_demo_data(user_id: int, db: Session):
             all_objects.append(Transaction(
                 user_id=user_id, amount=3200.0, type="income",
                 category_id=cat_map.get("Salary"), payment_method="Bank Transfer",
+                currency=user_currency,
                 description="Bi-Weekly Payroll Salary Direct Deposit",
                 transaction_date=sal_date_1, is_anomaly=False,
             ))
@@ -108,6 +119,7 @@ def seed_demo_data(user_id: int, db: Session):
             all_objects.append(Transaction(
                 user_id=user_id, amount=3200.0, type="income",
                 category_id=cat_map.get("Salary"), payment_method="Bank Transfer",
+                currency=user_currency,
                 description="Bi-Weekly Payroll Salary Direct Deposit",
                 transaction_date=sal_date_2, is_anomaly=False,
             ))
@@ -119,6 +131,7 @@ def seed_demo_data(user_id: int, db: Session):
                 all_objects.append(Transaction(
                     user_id=user_id, amount=850.0, type="income",
                     category_id=cat_map.get("Freelance"), payment_method="Bank Transfer",
+                    currency=user_currency,
                     description="Freelance Frontend UI Contract Payment",
                     transaction_date=freelance_date, is_anomaly=False,
                 ))
@@ -135,6 +148,7 @@ def seed_demo_data(user_id: int, db: Session):
             all_objects.append(Transaction(
                 user_id=user_id, amount=1450.0, type="expense",
                 category_id=cat_map.get("Rent & Housing"), payment_method="Bank Transfer",
+                currency=user_currency,
                 description="Downtown 1BR Apartment Rent",
                 transaction_date=rent_date, is_anomaly=False,
             ))
@@ -152,6 +166,7 @@ def seed_demo_data(user_id: int, db: Session):
             all_objects.append(Transaction(
                 user_id=user_id, amount=actual_amt, type="expense",
                 category_id=cat_map.get(cat_name), payment_method=p_method,
+                currency=user_currency,
                 description=desc_text, transaction_date=t_date, is_anomaly=False,
             ))
 
@@ -160,6 +175,7 @@ def seed_demo_data(user_id: int, db: Session):
     all_objects.append(Transaction(
         user_id=user_id, amount=385.00, type="expense",
         category_id=cat_map.get("Food & Dining"), payment_method="Credit Card",
+        currency=user_currency,
         description="L'Artisan Omakase Tasting Menu & Wine (Anniversary)",
         transaction_date=anom_date_1, is_anomaly=True,
         anomaly_reason="$385.00 is 4.9x higher than your typical Food & Dining expense (median: $78.00)",
@@ -169,6 +185,7 @@ def seed_demo_data(user_id: int, db: Session):
     all_objects.append(Transaction(
         user_id=user_id, amount=1199.00, type="expense",
         category_id=cat_map.get("Shopping"), payment_method="Credit Card",
+        currency=user_currency,
         description="Apple Store Ultra HD Studio Monitor",
         transaction_date=anom_date_2, is_anomaly=True,
         anomaly_reason="$1199.00 significantly exceeds your normal Shopping spending limit (avg: $54.16)",

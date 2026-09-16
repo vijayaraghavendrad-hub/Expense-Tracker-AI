@@ -18,6 +18,7 @@ CURRENCY_SYMBOLS = {
     "CNY": "¥",
     "CHF": "CHF ",
     "SGD": "S$",
+    "AED": "د.إ",
 }
 
 

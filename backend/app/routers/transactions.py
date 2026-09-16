@@ -252,10 +252,6 @@ def update_transaction(
     if payload.transaction_date is not None:
         tx.transaction_date = payload.transaction_date
 
-    # Anomaly suggestion removed
-    tx.is_anomaly = False
-    tx.anomaly_reason = None
-
     db.commit()
     db.refresh(tx)
     return tx

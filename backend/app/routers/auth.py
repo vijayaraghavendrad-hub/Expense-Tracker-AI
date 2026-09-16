@@ -28,10 +28,13 @@ DEFAULT_CATEGORIES = [
 
 
 def initialize_user_categories(user_id: int, db: Session):
-    existing = db.query(Category).filter(Category.user_id == user_id).first()
-    if existing:
-        return
+    existing_names = {
+        c.name.lower()
+        for c in db.query(Category.name).filter(Category.user_id == user_id).all()
+    }
     for item in DEFAULT_CATEGORIES:
+        if item["name"].lower() in existing_names:
+            continue
         category = Category(
             user_id=user_id,
             name=item["name"],

@@ -149,15 +149,15 @@ SEED_DATA: List[Tuple[str, str]] = [
     ("Adobe Creative Cloud all apps suite", "Subscriptions"),
 
     # Salary & Income
-    ("Bi-weekly company payroll salary deposit", "Salary & Income"),
-    ("Monthly tech corporate salary direct deposit", "Salary & Income"),
-    ("Freelance client web development payment", "Salary & Income"),
-    ("Upwork freelance project payout", "Salary & Income"),
-    ("Quarterly stock dividend payment", "Salary & Income"),
-    ("Annual performance bonus payout", "Salary & Income"),
-    ("Consulting invoice settlement", "Salary & Income"),
-    ("High yield savings account interest payout", "Salary & Income"),
-    ("Tax refund direct deposit government", "Salary & Income"),
+    ("Bi-weekly company payroll salary deposit", "Salary"),
+    ("Monthly tech corporate salary direct deposit", "Salary"),
+    ("Freelance client web development payment", "Freelance"),
+    ("Upwork freelance project payout", "Freelance"),
+    ("Quarterly stock dividend payment", "Investments"),
+    ("Annual performance bonus payout", "Salary"),
+    ("Consulting invoice settlement", "Freelance"),
+    ("High yield savings account interest payout", "Investments"),
+    ("Tax refund direct deposit government", "Other Income"),
 
     # Other
     ("ATM cash withdrawal cash out", "Other"),
@@ -181,20 +181,24 @@ class ExpenseClassifier:
         self.model = None
         self._is_trained = False
 
-    def train(self):
+    def _train_unsafe(self):
+        """Train the model. Caller must hold self._lock."""
         _ensure_sklearn()
+        texts = [clean_text(item[0]) for item in self.training_data]
+        labels = [item[1] for item in self.training_data]
+        new_model = _pipeline_cls(
+            [
+                ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
+                ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
+            ]
+        )
+        new_model.fit(texts, labels)
+        self.model = new_model
+        self._is_trained = True
+
+    def train(self):
         with self._lock:
-            texts = [clean_text(item[0]) for item in self.training_data]
-            labels = [item[1] for item in self.training_data]
-            new_model = _pipeline_cls(
-                [
-                    ("tfidf", _tfidf_cls(ngram_range=(1, 2), min_df=1, max_features=2500)),
-                    ("clf", _lr_cls(C=2.0, max_iter=500, random_state=42)),
-                ]
-            )
-            new_model.fit(texts, labels)
-            self.model = new_model
-            self._is_trained = True
+            self._train_unsafe()
 
     def predict(self, description: str, amount: Optional[float] = None) -> Dict:
         if not description or not description.strip():
@@ -207,7 +211,7 @@ class ExpenseClassifier:
         cleaned = clean_text(description)
         with self._lock:
             if not self._is_trained:
-                self.train()
+                self._train_unsafe()
             probabilities = self.model.predict_proba([cleaned])[0]
             classes = self.model.classes_
 
@@ -253,9 +257,8 @@ class ExpenseClassifier:
         if not description or not actual_category:
             return
         with self._lock:
-            for _ in range(3):
-                self.training_data.append((description, actual_category))
-            self.train()
+            self.training_data.append((description, actual_category))
+            self._train_unsafe()
 
 
 # Global singleton instance

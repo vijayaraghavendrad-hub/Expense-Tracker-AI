@@ -113,7 +113,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            defaultValue={search}
+            value={search}
             onChange={(e) => {
               debouncedSetSearch(e.target.value);
             }}
